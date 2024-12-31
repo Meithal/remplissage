@@ -2,3 +2,4 @@ glad
 .idea
 cmake-build-*
 .DS_Store
+/glew/auto/**/.dummy

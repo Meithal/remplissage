@@ -29,6 +29,9 @@ add_executable(nuk_skin Nuklear/example/skinning.c)
 target_link_libraries(nuk_skin PRIVATE glfw glew)
 target_include_directories(nuk_skin PRIVATE glew/include)
 
+set_target_properties(nuk_skin nuk_filebrowser nuk_extended nuk_canvas
+        PROPERTIES RUNTIME_OUTPUT_DIRECTORY bin)
+
 
 
 # Define the source and destination directories for shader files
