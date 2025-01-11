@@ -3,3 +3,6 @@ glad
 cmake-build-*
 .DS_Store
 /glew/auto/**/.dummy
+glew
+glfw
+Nuklear
