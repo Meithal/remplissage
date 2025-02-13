@@ -329,6 +329,29 @@ device_draw(struct device *dev, struct nk_context *ctx, int width, int height,
     glDisable(GL_SCISSOR_TEST);
 }
 
+static void
+grid_demo(struct nk_context *ctx)
+{
+    static char text[3][64];
+    static int text_len[3];
+    static const char *items[] = {"Item 0","item 1","item 2"};
+    static int selected_item = 0;
+    static int check = 1;
+
+    int i;
+    if (nk_begin(ctx, "Selected color", nk_rect(600, 350, 275, 250),
+                 NK_WINDOW_TITLE|NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|
+                 NK_WINDOW_NO_SCROLLBAR))
+    {
+        nk_layout_row_dynamic(ctx, 10, 2);
+        nk_label(ctx, "Couleur selectionne:", NK_TEXT_RIGHT);
+        nk_draw_button(&ctx->current->buffer, (struct nk_rect){30, 30, 10, 10}, 1, (struct nk_color){255,0,0,255});
+    }
+    nk_end(ctx);
+}
+
+static struct nk_color g_current_color;
+
 /* glfw callbacks (I don't know if there is a easier way to access text and scroll )*/
 static void error_callback(int e, const char *d){printf("Error %d: %s\n", e, d);}
 static void text_input(GLFWwindow *win, unsigned int codepoint)
@@ -377,12 +400,6 @@ int main(int argc, char *argv[])
 
     /* OpenGL */
     glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-    //glewExperimental = 1;
-    /*if (glewInit() != GLEW_OK) {
-        fprintf(stderr, "Failed to setup GLEW\n");
-        exit(1);
-    }*/
-
 
     /* GUI */
     {device_init(&device);
@@ -451,7 +468,12 @@ int main(int argc, char *argv[])
             static int current_weapon = 0;
             static char field_buffer[64];
             static float pos;
-            static const char *weapons[] = {"Couleur","Pistol","Shotgun","Plasma","BFG"};
+            static const char *weapons[] = {
+                    "Couleur",
+                    "Polygone à découper",
+                    "Tracé fenêtre",
+                    "Fenêtrage",
+                    "Remplissage"};
             const float step = (2*3.141592654f) / 32;
 
             nk_layout_row_static(&ctx, 30, 120, 1);
@@ -513,11 +535,13 @@ int main(int argc, char *argv[])
         }
         nk_end(&ctx);
 
+        grid_demo(&ctx);
+
         /* Draw */
         glViewport(0, 0, display_width, display_height);
         glClear(GL_COLOR_BUFFER_BIT);
         glClearColor(0.5882, 0.6666, 0.6666, 1.0f);
-        device_draw(&device, &ctx, width, height, scale, NK_ANTI_ALIASING_ON);
+        device_draw(&device, &ctx, width, height, scale, NK_ANTI_ALIASING_OFF);
         glfwSwapBuffers(win);
     }
     glDeleteTextures(1,(const GLuint*)&media.skin);

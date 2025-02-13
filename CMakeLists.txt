@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(fenetrage_remplissage C)
 
-set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD 11)
 
 add_executable(fenetrage_remplissage main.c glad/src/glad.c)
 
