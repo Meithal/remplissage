@@ -339,13 +339,19 @@ grid_demo(struct nk_context *ctx)
     static int check = 1;
 
     int i;
-    if (nk_begin(ctx, "Selected color", nk_rect(600, 350, 275, 250),
+    if (nk_begin(ctx, "Selected color", nk_rect(600, 350, 275, 50),
                  NK_WINDOW_TITLE|NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|
                  NK_WINDOW_NO_SCROLLBAR))
     {
+
         nk_layout_row_dynamic(ctx, 10, 2);
         nk_label(ctx, "Couleur selectionne:", NK_TEXT_RIGHT);
-        nk_draw_button(&ctx->current->buffer, (struct nk_rect){30, 30, 10, 10}, 1, (struct nk_color){255,0,0,255});
+        struct nk_rect total_space;
+        total_space = nk_widget_bounds(ctx);
+        total_space.w -= ctx->style.window.padding.x * 2;
+        total_space.x += ctx->style.window.padding.x;
+
+        nk_fill_rect(&ctx->current->buffer, total_space, 0, (struct nk_color){255,0,0,255});
     }
     nk_end(ctx);
 }
