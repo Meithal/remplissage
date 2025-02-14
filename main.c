@@ -18,6 +18,7 @@
 #define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
 #define NK_INCLUDE_FONT_BAKING
 #define NK_INCLUDE_DEFAULT_FONT
+#define NK_BUTTON_TRIGGER_ON_RELEASE
 #define NK_IMPLEMENTATION
 #include "Nuklear//nuklear.h"
 
@@ -329,8 +330,79 @@ device_draw(struct device *dev, struct nk_context *ctx, int width, int height,
     glDisable(GL_SCISSOR_TEST);
 }
 
+
 static void
-grid_demo(struct nk_context *ctx)
+right_click_panel(struct nk_context* ctx)
+{
+    /* GUI */
+    if (nk_begin(ctx, "Demo", nk_rect(ctx->input.mouse.pos.x, ctx->input.mouse.pos.y, 300, 400),
+        NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE))
+    {
+        int i;
+        float id;
+        static int slider = 10;
+        static int field_len;
+        static nk_size prog_value = 60;
+        static int current_weapon = 0;
+        static char field_buffer[64];
+        static float pos;
+        static const char* weapons[] = {
+                "Couleur",
+                "Polygone à découper",
+                "Tracé fenêtre",
+                "Fenêtrage",
+                "Remplissage" };
+        const float step = (2 * 3.141592654f) / 32;
+
+        nk_layout_row_static(ctx, 30, 120, 1);
+        if (nk_button_label(ctx, "Couleur"))
+            fprintf(stdout, "button pressed\n");
+
+        nk_layout_row_dynamic(ctx, 20, 1);
+        nk_label(ctx, "Label", NK_TEXT_LEFT);
+        nk_layout_row_dynamic(ctx, 30, 2);
+        nk_check_label(ctx, "inactive", 0);
+        nk_check_label(ctx, "active", 1);
+        nk_option_label(ctx, "active", 1);
+        nk_option_label(ctx, "inactive", 0);
+
+        nk_layout_row_dynamic(ctx, 30, 1);
+        nk_slider_int(ctx, 0, &slider, 16, 1);
+        nk_layout_row_dynamic(ctx, 20, 1);
+        nk_progress(ctx, &prog_value, 100, NK_MODIFIABLE);
+
+        nk_layout_row_dynamic(ctx, 25, 1);
+        nk_edit_string(ctx, NK_EDIT_FIELD, field_buffer, &field_len, 64, nk_filter_default);
+        nk_property_float(ctx, "#X:", -1024.0f, &pos, 1024.0f, 1, 1);
+        current_weapon = nk_combo(ctx, weapons, LEN(weapons), current_weapon, 25, nk_vec2(nk_widget_width(ctx), 200));
+
+        nk_layout_row_dynamic(ctx, 250, 1);
+        if (nk_group_begin(ctx, "Standard", NK_WINDOW_BORDER | NK_WINDOW_BORDER))
+        {
+            if (nk_tree_push(ctx, NK_TREE_NODE, "Window", NK_MAXIMIZED)) {
+                static int selected[8];
+                if (nk_tree_push(ctx, NK_TREE_NODE, "Next", NK_MAXIMIZED)) {
+                    nk_layout_row_dynamic(ctx, 20, 1);
+                    for (i = 0; i < 4; ++i)
+                        nk_selectable_label(ctx, (selected[i]) ? "Selected" : "Unselected", NK_TEXT_LEFT, &selected[i]);
+                    nk_tree_pop(ctx);
+                }
+                if (nk_tree_push(ctx, NK_TREE_NODE, "Previous", NK_MAXIMIZED)) {
+                    nk_layout_row_dynamic(ctx, 20, 1);
+                    for (i = 4; i < 8; ++i)
+                        nk_selectable_label(ctx, (selected[i]) ? "Selected" : "Unselected", NK_TEXT_LEFT, &selected[i]);
+                    nk_tree_pop(ctx);
+                }
+                nk_tree_pop(ctx);
+            }
+            nk_group_end(ctx);
+        }
+    }
+    nk_end(ctx);
+}
+
+static void
+color_shower(struct nk_context *ctx)
 {
     static char text[3][64];
     static int text_len[3];
@@ -460,88 +532,19 @@ int main(int argc, char *argv[])
             nk_input_button(&ctx, NK_BUTTON_LEFT, (int)x, (int)y, glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
             nk_input_button(&ctx, NK_BUTTON_MIDDLE, (int)x, (int)y, glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS);
             nk_input_button(&ctx, NK_BUTTON_RIGHT, (int)x, (int)y, glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS);
-            nk_input_end(&ctx);}
-
-        /* GUI */
-        if (nk_begin(&ctx, "Demo", nk_rect(50, 50, 300, 400),
-                     NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_TITLE))
-        {
-            int i;
-            float id;
-            static int slider = 10;
-            static int field_len;
-            static nk_size prog_value = 60;
-            static int current_weapon = 0;
-            static char field_buffer[64];
-            static float pos;
-            static const char *weapons[] = {
-                    "Couleur",
-                    "Polygone à découper",
-                    "Tracé fenêtre",
-                    "Fenêtrage",
-                    "Remplissage"};
-            const float step = (2*3.141592654f) / 32;
-
-            nk_layout_row_static(&ctx, 30, 120, 1);
-            if (nk_button_label(&ctx, "button"))
-                fprintf(stdout, "button pressed\n");
-
-            nk_layout_row_dynamic(&ctx, 20, 1);
-            nk_label(&ctx, "Label", NK_TEXT_LEFT);
-            nk_layout_row_dynamic(&ctx, 30, 2);
-            nk_check_label(&ctx, "inactive", 0);
-            nk_check_label(&ctx, "active", 1);
-            nk_option_label(&ctx, "active", 1);
-            nk_option_label(&ctx, "inactive", 0);
-
-            nk_layout_row_dynamic(&ctx, 30, 1);
-            nk_slider_int(&ctx, 0, &slider, 16, 1);
-            nk_layout_row_dynamic(&ctx, 20, 1);
-            nk_progress(&ctx, &prog_value, 100, NK_MODIFIABLE);
-
-            nk_layout_row_dynamic(&ctx, 25, 1);
-            nk_edit_string(&ctx, NK_EDIT_FIELD, field_buffer, &field_len, 64, nk_filter_default);
-            nk_property_float(&ctx, "#X:", -1024.0f, &pos, 1024.0f, 1, 1);
-            current_weapon = nk_combo(&ctx, weapons, LEN(weapons), current_weapon, 25, nk_vec2(nk_widget_width(&ctx),200));
-
-            nk_layout_row_dynamic(&ctx, 100, 1);
-            if (nk_chart_begin_colored(&ctx, NK_CHART_LINES, nk_rgb(255,0,0), nk_rgb(150,0,0), 32, 0.0f, 1.0f)) {
-                nk_chart_add_slot_colored(&ctx, NK_CHART_LINES, nk_rgb(0,0,255), nk_rgb(0,0,150),32, -1.0f, 1.0f);
-                nk_chart_add_slot_colored(&ctx, NK_CHART_LINES, nk_rgb(0,255,0), nk_rgb(0,150,0), 32, -1.0f, 1.0f);
-                for (id = 0, i = 0; i < 32; ++i) {
-                    nk_chart_push_slot(&ctx, (float)fabs(sin(id)), 0);
-                    nk_chart_push_slot(&ctx, (float)cos(id), 1);
-                    nk_chart_push_slot(&ctx, (float)sin(id), 2);
-                    id += step;
-                }
-            }
-            nk_chart_end(&ctx);
-
-            nk_layout_row_dynamic(&ctx, 250, 1);
-            if (nk_group_begin(&ctx, "Standard", NK_WINDOW_BORDER|NK_WINDOW_BORDER))
-            {
-                if (nk_tree_push(&ctx, NK_TREE_NODE, "Window", NK_MAXIMIZED)) {
-                    static int selected[8];
-                    if (nk_tree_push(&ctx, NK_TREE_NODE, "Next", NK_MAXIMIZED)) {
-                        nk_layout_row_dynamic(&ctx, 20, 1);
-                        for (i = 0; i < 4; ++i)
-                            nk_selectable_label(&ctx, (selected[i]) ? "Selected": "Unselected", NK_TEXT_LEFT, &selected[i]);
-                        nk_tree_pop(&ctx);
-                    }
-                    if (nk_tree_push(&ctx, NK_TREE_NODE, "Previous", NK_MAXIMIZED)) {
-                        nk_layout_row_dynamic(&ctx, 20, 1);
-                        for (i = 4; i < 8; ++i)
-                            nk_selectable_label(&ctx, (selected[i]) ? "Selected": "Unselected", NK_TEXT_LEFT, &selected[i]);
-                        nk_tree_pop(&ctx);
-                    }
-                    nk_tree_pop(&ctx);
-                }
-                nk_group_end(&ctx);
-            }
+            nk_input_end(&ctx);
         }
-        nk_end(&ctx);
+        
+        static _Bool right_panel_showed = 0;
 
-        grid_demo(&ctx);
+        if (nk_input_is_mouse_released(&ctx.input, NK_BUTTON_RIGHT)) {
+            right_panel_showed = !right_panel_showed;
+        }
+
+        if(right_panel_showed)
+            right_click_panel(&ctx);
+
+        color_shower(&ctx);
 
         /* Draw */
         glViewport(0, 0, display_width, display_height);
