@@ -66,6 +66,86 @@ struct media {
     struct nk_image slider_active;
 };
 
+/* Forme Lesly */
+
+
+const char* vertexShaderSource = "#version 330 core\n"
+"layout (location = 0) in vec2 aPos;\n"
+"void main()\n"
+"{\n"
+"  gl_Position = vec4(aPos, 0.0, 1.0);\n"
+"}\0";
+
+const char* fragmentShaderSource = "#version 330 core\n"
+"out vec4 FragColor;\n"
+"void main()\n"
+"{\n"
+"  FragColor = vec4(1.0, 0.5, 0.2, 1.0);\n"
+"}\0";
+
+unsigned int VBO, VAO, shaderProgram;
+
+void initPolygon() {
+
+    float vertices[] = {
+    -0.5f, -0.5f,
+    0.5f, -0.5f,
+    0.7f, 0.0f,
+    0.5f, 0.5f,
+    -0.5f, 0.5f,
+    -0.7f, 0.0f
+    };
+
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+
+    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    glCompileShader(vertexShader);
+
+    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    glCompileShader(fragmentShader);
+
+    shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+}
+
+void drawPolygon() {
+    glUseProgram(shaderProgram);
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 6);
+    glBindVertexArray(0);
+}
+
+
+#define RM_MAX_SHAPES 20
+#define RM_MAX_POINTS 20
+
+static struct shape {
+    float colors[4];
+    int last_point;
+    float points [RM_MAX_POINTS];
+} g_shapes[RM_MAX_SHAPES];
+static int g_cur_shape = 0;
+static int g_last_shape = 0;
 
 /* ===============================================================
  *
@@ -92,6 +172,8 @@ struct device {
     GLint uniform_proj;
     GLuint font_tex;
 };
+
+static struct nk_color g_current_color;
 
 static void
 die(const char *fmt, ...)
@@ -296,10 +378,12 @@ device_draw(struct device *dev, struct nk_context *ctx, int width, int height,
             config.line_AA = AA;
 
             /* setup buffers to load vertices and elements */
-            {struct nk_buffer vbuf, ebuf;
+            {
+                struct nk_buffer vbuf, ebuf;
                 nk_buffer_init_fixed(&vbuf, vertices, MAX_VERTEX_MEMORY);
                 nk_buffer_init_fixed(&ebuf, elements, MAX_ELEMENT_MEMORY);
-                nk_convert(ctx, &dev->cmds, &vbuf, &ebuf, &config);}
+                nk_convert(ctx, &dev->cmds, &vbuf, &ebuf, &config);
+            }
         }
         glUnmapBuffer(GL_ARRAY_BUFFER);
         glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
@@ -307,7 +391,9 @@ device_draw(struct device *dev, struct nk_context *ctx, int width, int height,
         /* iterate over and execute each draw command */
         nk_draw_foreach(cmd, ctx, &dev->cmds)
         {
-            if (!cmd->elem_count) continue;
+            if (!cmd->elem_count) 
+                continue;
+
             glBindTexture(GL_TEXTURE_2D, (GLuint)cmd->texture.id);
             glScissor(
                     (GLint)(cmd->clip_rect.x * scale.x),
@@ -335,7 +421,7 @@ static void
 right_click_panel(struct nk_context* ctx)
 {
     /* GUI */
-    if (nk_begin(ctx, "Demo", nk_rect(ctx->input.mouse.pos.x, ctx->input.mouse.pos.y, 300, 400),
+    if (nk_begin(ctx, "Remplissage", nk_rect(ctx->input.mouse.pos.x, ctx->input.mouse.pos.y, 300, 400),
         NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE))
     {
         int i;
@@ -355,11 +441,13 @@ right_click_panel(struct nk_context* ctx)
         const float step = (2 * 3.141592654f) / 32;
 
         nk_layout_row_static(ctx, 30, 120, 1);
+
         if (nk_button_label(ctx, "Couleur"))
             fprintf(stdout, "button pressed\n");
 
-        nk_layout_row_dynamic(ctx, 20, 1);
-        nk_label(ctx, "Label", NK_TEXT_LEFT);
+        nk_layout_row_dynamic(ctx, 120, 2);
+        nk_label(ctx, "Couleur :", NK_TEXT_LEFT);
+        g_current_color = nk_rgb_cf( nk_color_picker(ctx, nk_color_cf(g_current_color), NK_RGB));
         nk_layout_row_dynamic(ctx, 30, 2);
         nk_check_label(ctx, "inactive", 0);
         nk_check_label(ctx, "active", 1);
@@ -423,12 +511,10 @@ color_shower(struct nk_context *ctx)
         total_space.w -= ctx->style.window.padding.x * 2;
         total_space.x += ctx->style.window.padding.x;
 
-        nk_fill_rect(&ctx->current->buffer, total_space, 0, (struct nk_color){255,0,0,255});
+        nk_fill_rect(&ctx->current->buffer, total_space, 0, g_current_color);
     }
     nk_end(ctx);
 }
-
-static struct nk_color g_current_color;
 
 /* glfw callbacks (I don't know if there is a easier way to access text and scroll )*/
 static void error_callback(int e, const char *d){printf("Error %d: %s\n", e, d);}
@@ -544,6 +630,16 @@ int main(int argc, char *argv[])
         if(right_panel_showed)
             right_click_panel(&ctx);
 
+        /* Nos points à nous */
+        /*if (nk_input_is_mouse_released(&ctx.input, NK_BUTTON_LEFT)) {
+            ctx.input.mouse.pos.x; ctx.input.mouse.pos.y;
+            int idx = g_shapes[g_cur_shape].last_point;
+            g_shapes[g_cur_shape].points[idx][]
+        }*/
+
+
+
+
         color_shower(&ctx);
 
         /* Draw */
@@ -551,6 +647,8 @@ int main(int argc, char *argv[])
         glClear(GL_COLOR_BUFFER_BIT);
         glClearColor(0.5882, 0.6666, 0.6666, 1.0f);
         device_draw(&device, &ctx, width, height, scale, NK_ANTI_ALIASING_OFF);
+        initPolygon();
+        drawPolygon();
         glfwSwapBuffers(win);
     }
     glDeleteTextures(1,(const GLuint*)&media.skin);
