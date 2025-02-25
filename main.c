@@ -85,16 +85,27 @@ const char* fragmentShaderSource = "#version 330 core\n"
 
 unsigned int VBO, VAO, shaderProgram;
 
-void initPolygon() {
+static float vertices[] = {
+-0.5f, -0.5f,
+0.5f, -0.5f,
+0.7f, 0.0f,
+0.5f, 0.5f,
+-0.5f, 0.5f,
+-0.7f, 0.0f
+};
 
-    float vertices[] = {
-    -0.5f, -0.5f,
-    0.5f, -0.5f,
-    0.7f, 0.0f,
-    0.5f, 0.5f,
-    -0.5f, 0.5f,
-    -0.7f, 0.0f
-    };
+#define RM_MAX_SHAPES 20
+#define RM_MAX_POINTS 20
+
+static struct shape {
+    float colors[4];
+    int last_point;
+    float points[RM_MAX_POINTS][2];
+} g_shapes[RM_MAX_SHAPES];
+static int g_cur_shape = 0;
+static int g_last_shape = 0;
+
+static void initPolygon() {
 
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -102,7 +113,13 @@ void initPolygon() {
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    int n_pts = g_shapes[g_cur_shape].last_point;
+
+    //g_shapes[g_cur_shape].points[n_pts][0] = screen_coord_to_opengl(ctx.input.mouse.pos.y, display_height);
+    //g_shapes[g_cur_shape].points[idx][1] = screen_coord_to_opengl(ctx.input.mouse.pos.x, display_width);
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * n_pts * 2, g_shapes[g_cur_shape].points, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -128,24 +145,15 @@ void initPolygon() {
     glDeleteShader(fragmentShader);
 }
 
-void drawPolygon() {
+static void drawPolygon() {
     glUseProgram(shaderProgram);
     glBindVertexArray(VAO);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 6);
+    int n_pts = g_shapes[g_cur_shape].last_point;
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, n_pts);
     glBindVertexArray(0);
 }
 
 
-#define RM_MAX_SHAPES 20
-#define RM_MAX_POINTS 20
-
-static struct shape {
-    float colors[4];
-    int last_point;
-    float points [RM_MAX_POINTS];
-} g_shapes[RM_MAX_SHAPES];
-static int g_cur_shape = 0;
-static int g_last_shape = 0;
 
 /* ===============================================================
  *
@@ -517,11 +525,29 @@ color_shower(struct nk_context *ctx)
 }
 
 /* glfw callbacks (I don't know if there is a easier way to access text and scroll )*/
-static void error_callback(int e, const char *d){printf("Error %d: %s\n", e, d);}
+static void error_callback(int e, const char *d){
+    printf("Error %d: %s\n", e, d);
+}
 static void text_input(GLFWwindow *win, unsigned int codepoint)
-{nk_input_unicode((struct nk_context*)glfwGetWindowUserPointer(win), codepoint);}
+{
+    nk_input_unicode((struct nk_context*)glfwGetWindowUserPointer(win), codepoint);
+}
 static void scroll_input(GLFWwindow *win, double _, double yoff)
-{UNUSED(_);nk_input_scroll((struct nk_context*)glfwGetWindowUserPointer(win), nk_vec2(0, (float)yoff));}
+{
+    UNUSED(_);
+    nk_input_scroll(
+        (struct nk_context*)glfwGetWindowUserPointer(win), 
+        nk_vec2(0, (float)yoff)
+    );
+}
+
+/*
+  Convertir coordonnées ecran 0->800 vers opengl -1 -> 1
+*/
+static float screen_coord_to_opengl(int screen_coordonnee, int longueur_ecran)
+{
+    return (screen_coordonnee / (float)longueur_ecran) * 2 - 1;
+}
 
 int main(int argc, char *argv[])
 {
@@ -631,11 +657,15 @@ int main(int argc, char *argv[])
             right_click_panel(&ctx);
 
         /* Nos points à nous */
-        /*if (nk_input_is_mouse_released(&ctx.input, NK_BUTTON_LEFT)) {
-            ctx.input.mouse.pos.x; ctx.input.mouse.pos.y;
+        if (nk_input_is_mouse_released(&ctx.input, NK_BUTTON_LEFT)) {
+
             int idx = g_shapes[g_cur_shape].last_point;
-            g_shapes[g_cur_shape].points[idx][]
-        }*/
+            
+            g_shapes[g_cur_shape].points[idx][1] = -screen_coord_to_opengl(ctx.input.mouse.pos.y, display_height);
+            g_shapes[g_cur_shape].points[idx][0] = screen_coord_to_opengl(ctx.input.mouse.pos.x, display_width);
+            
+            g_shapes[g_cur_shape].last_point++;
+        }
 
 
 
@@ -646,9 +676,9 @@ int main(int argc, char *argv[])
         glViewport(0, 0, display_width, display_height);
         glClear(GL_COLOR_BUFFER_BIT);
         glClearColor(0.5882, 0.6666, 0.6666, 1.0f);
-        device_draw(&device, &ctx, width, height, scale, NK_ANTI_ALIASING_OFF);
         initPolygon();
         drawPolygon();
+        device_draw(&device, &ctx, width, height, scale, NK_ANTI_ALIASING_OFF);
         glfwSwapBuffers(win);
     }
     glDeleteTextures(1,(const GLuint*)&media.skin);
