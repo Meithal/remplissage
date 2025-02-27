@@ -13,6 +13,7 @@
 #include <GLFW/glfw3.h>
 
 #define NK_INCLUDE_FONT_BAKING
+#define NK_INCLUDE_DEFAULT_FONT
 #include "Nuklear/nuklear.h"
 
 #include "gui.h"

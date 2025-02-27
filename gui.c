@@ -46,7 +46,7 @@ void device_main(const char* font_path, struct device * device)
             if (font_path) device->font = nk_font_atlas_add_from_file(&device->atlas, font_path, 13.0f, NULL);
             else device->font = nk_font_atlas_add_default(&device->atlas, 13.0f, NULL);
             image = nk_font_atlas_bake(&device->atlas, &w, &h, NK_FONT_ATLAS_RGBA32);
-            device_upload_atlas(&device, image, w, h);
+            device_upload_atlas(device, image, w, h);
             nk_font_atlas_end(&device->atlas, nk_handle_id((int)device->font_tex), &device->tex_null);
         }
         nk_init_default(&device->ctx, &device->font->handle);
@@ -100,7 +100,7 @@ void device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height,
     }
 
     if (right_panel_showed)
-        right_click_panel(&ctx);
+        right_click_panel(ctx);
 
     /* Nos points � nous */
     if (nk_input_is_mouse_released(&ctx->input, NK_BUTTON_LEFT)) {
@@ -113,7 +113,7 @@ void device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height,
         g_shapes[g_cur_shape].last_point++;
     }
 
-    color_shower(&ctx);
+    color_shower(ctx);
 }
 static void
 die(const char* fmt, ...)
