@@ -3,7 +3,7 @@ project(fenetrage_remplissage C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(fenetrage_remplissage main.c glad/src/glad.c)
+add_executable(fenetrage_remplissage main.c glad/src/glad.c gui.h gui.c shapes.h shapes.c)
 
 target_include_directories(fenetrage_remplissage PRIVATE glad/include)
 target_include_directories(fenetrage_remplissage PRIVATE glfw/include)
@@ -21,15 +21,16 @@ add_executable(nuk_extended Nuklear/example/extended.c)
 target_link_libraries(nuk_extended PRIVATE glfw glew)
 target_include_directories(nuk_extended PRIVATE glew/include)
 
-add_executable(nuk_filebrowser Nuklear/example/file_browser.c)
-target_link_libraries(nuk_filebrowser PRIVATE glfw glew)
-target_include_directories(nuk_filebrowser PRIVATE glew/include)
+
+#add_executable(nuk_filebrowser Nuklear/example/file_browser.c)
+#target_link_libraries(nuk_filebrowser PRIVATE glfw glew)
+#target_include_directories(nuk_filebrowser PRIVATE glew/include)
 
 add_executable(nuk_skin Nuklear/example/skinning.c)
 target_link_libraries(nuk_skin PRIVATE glfw glew)
 target_include_directories(nuk_skin PRIVATE glew/include)
 
-set_target_properties(nuk_skin nuk_filebrowser nuk_extended nuk_canvas
+set_target_properties(nuk_skin nuk_extended nuk_canvas
         PROPERTIES RUNTIME_OUTPUT_DIRECTORY bin)
 
 

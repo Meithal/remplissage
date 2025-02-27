@@ -7,3 +7,5 @@ glew
 glfw
 Nuklear
 sln
+.vscode
+build
