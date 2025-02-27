@@ -3,7 +3,7 @@
 #define RM_MAX_POINTS 20
 
 extern struct shape {
-    float colors[4];
+    unsigned char colors[4];
     int last_point;
     float points[RM_MAX_POINTS][2];
 } g_shapes[RM_MAX_SHAPES];

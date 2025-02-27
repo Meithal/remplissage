@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <math.h>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -123,21 +124,54 @@ static void drawPolygon() {
     glBindVertexArray(0);
 }
 
-const int texWidth = 256, texHeight = 256;
+#define texWidth 256
+#define texHeight 256
 unsigned char textureData[texWidth * texHeight * 3];
+
+float angle(float y1, float x1, float y2, float x2, float pivoty, float pivotx)
+{
+    // on calcule produit scalaire des deux vecteurs
+    // puis on utilise l'inverse du cosinus pourtrouver l'angle
+    float dot = (y1 - pivoty) * (y2 - pivoty) + (x1 - pivotx) * (x2 - pivotx);
+    float normeA = sqrtf(powf(y1 - pivoty, 2) + powf(x1 - pivotx, 2));
+    float normeB = sqrtf(powf(y2 - pivoty, 2) + powf(x2 - pivotx, 2));
+
+    float costheta = dot / (normeA * normeB);
+    float rad = acosf(costheta);
+    float degrees = rad * 180.0f / (float)M_PI;
+
+    return degrees;
+}
+
+_Bool is_inside_polygon(float y, float x)
+{
+    float y1 = g_shapes[g_cur_shape].points[0][0];
+    float x1 = g_shapes[g_cur_shape].points[0][1];
+    float y2 = g_shapes[g_cur_shape].points[1][0];
+    float x2 = g_shapes[g_cur_shape].points[1][1];
+    float y3 = g_shapes[g_cur_shape].points[2][0];
+    float x3 = g_shapes[g_cur_shape].points[2][1];
+
+    return angle(y1, x1, y2, x2, y, x) + angle(y2, x2, y3, x3, y, x) + angle(y3, x3, y1, x1, y, x) > 0;
+}
 
 void generateTexture()
 {
     for (int y = 0; y < texHeight ; y++) {
         for (int x = 0; x < texWidth; x++) {
             int index = (y * texWidth + x) * 3;
-            textureData[index] = (unsigned char) x; // rouge degradé horizontal
-            textureData[index + 1] = (unsigned char) y; // vert degradé vertial
-            textureData[index + 2] = 128; // bleu constant
+            if (is_inside_polygon(1 - ((float)y * 2.f / texHeight - 1), (float)x * 2.f / texWidth - 1)) {
+                textureData[index] = g_shapes[g_cur_shape].colors[0];
+                textureData[index + 1] = g_shapes[g_cur_shape].colors[1];
+                textureData[index + 2] = g_shapes[g_cur_shape].colors[2];
+            } else {
+                textureData[index] = 0;
+                textureData[index + 1] = 0;
+                textureData[index + 2] = 0;
+            }
         }
     }
 }
-
 
 void loadTexture() {
     glGenTextures(1, &texture);
@@ -147,7 +181,6 @@ void loadTexture() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
 }
 
 /* glfw callbacks (I don't know if there is a easier way to access text and scroll )*/
