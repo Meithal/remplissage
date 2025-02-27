@@ -22,7 +22,7 @@
 /*
   Convertir coordonnées ecran 0->800 vers opengl -1 -> 1
 */
-static float screen_coord_to_opengl(int screen_coordonnee, int longueur_ecran)
+static float screen_coord_to_opengl(float screen_coordonnee, int longueur_ecran)
 {
     return (screen_coordonnee / (float)longueur_ecran) * 2 - 1;
 }
@@ -102,7 +102,7 @@ void device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height,
     if (right_panel_showed)
         right_click_panel(ctx);
 
-    /* Nos points � nous */
+    /* Nos points à nous */
     if (nk_input_is_mouse_released(&ctx->input, NK_BUTTON_LEFT)) {
 
         int idx = g_shapes[g_cur_shape].last_point;
@@ -132,7 +132,8 @@ image_load(const char* filename)
     int x, y, n;
     GLuint tex;
     unsigned char* data = stbi_load(filename, &x, &y, &n, 0);
-    if (!data) die("failed to load image: %s", filename);
+    if (!data)
+        die("failed to load image: %s", filename);
 
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
@@ -442,7 +443,6 @@ color_shower(struct nk_context* ctx)
     static int selected_item = 0;
     static int check = 1;
 
-    int i;
     if (nk_begin(ctx, "Selected color", nk_rect(600, 350, 275, 50),
         NK_WINDOW_TITLE | NK_WINDOW_BORDER | NK_WINDOW_MOVABLE |
         NK_WINDOW_NO_SCROLLBAR))
@@ -460,11 +460,11 @@ color_shower(struct nk_context* ctx)
     nk_end(ctx);
 }
 
-
 void text_input(GLFWwindow* win, unsigned int codepoint)
 {
     nk_input_unicode((struct nk_context*)glfwGetWindowUserPointer(win), codepoint);
 }
+
 void scroll_input(GLFWwindow* win, double _, double yoff)
 {
     UNUSED(_);
