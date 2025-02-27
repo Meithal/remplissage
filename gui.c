@@ -107,8 +107,8 @@ void device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height,
 
         int idx = g_shapes[g_cur_shape].last_point;
 
-        g_shapes[g_cur_shape].points[idx][1] = -screen_coord_to_opengl(ctx->input.mouse.pos.y, display_height);
-        g_shapes[g_cur_shape].points[idx][0] = screen_coord_to_opengl(ctx->input.mouse.pos.x, display_width);
+        g_shapes[g_cur_shape].points[idx][1] = -screen_coord_to_opengl(ctx->input.mouse.pos.y, height);
+        g_shapes[g_cur_shape].points[idx][0] = screen_coord_to_opengl(ctx->input.mouse.pos.x, width);
 
         g_shapes[g_cur_shape].last_point++;
     }
