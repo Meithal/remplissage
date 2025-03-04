@@ -85,5 +85,4 @@ void device_shutdown(struct device* dev);
 void text_input(GLFWwindow* win, unsigned int codepoint);
 void scroll_input(GLFWwindow* win, double _, double yoff);
 void device_main(const char* font_path, struct device* device);
-void device_loop(struct nk_context* ctx, GLFWwindow* win, int width, int height,
-int display_width, int display_height);
+void device_loop(struct nk_context* ctx, GLFWwindow* win, int width, int height);

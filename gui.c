@@ -57,8 +57,7 @@ void device_main(const char* font_path, struct device * device)
 
 }
 
-void device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height,
-    int display_width, int display_height)
+void device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height)
 {
 
     /* Input */
@@ -138,6 +137,7 @@ void device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height,
 
     color_shower(ctx);
 }
+
 static void
 die(const char* fmt, ...)
 {
@@ -444,7 +444,7 @@ right_click_panel(struct nk_context* ctx)
         }
 
         nk_layout_row_dynamic(ctx, 250, 1);
-        if (nk_group_begin(ctx, "Standard", NK_WINDOW_BORDER | NK_WINDOW_BORDER))
+        if (nk_group_begin(ctx, "Standard", NK_WINDOW_BORDER))
         {
             if (nk_tree_push(ctx, NK_TREE_NODE, "Window", NK_MAXIMIZED)) {
                 static int selected[8];

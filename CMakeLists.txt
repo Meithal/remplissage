@@ -3,7 +3,9 @@ project(fenetrage_remplissage C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(fenetrage_remplissage main.c glad/src/glad.c gui.h gui.c shapes.h shapes.c)
+add_executable(fenetrage_remplissage main.c glad/src/glad.c gui.h gui.c shapes.h shapes.c
+        decoupage.c
+        decoupage.h)
 
 target_include_directories(fenetrage_remplissage PRIVATE glad/include)
 target_include_directories(fenetrage_remplissage PRIVATE glfw/include)

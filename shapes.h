@@ -4,6 +4,7 @@
 
 extern struct shape {
     unsigned char colors[4];
+    unsigned char remplissage_colors[4];
     int last_point;
     struct vec2 {
         float y;
