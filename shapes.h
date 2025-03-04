@@ -5,7 +5,10 @@
 extern struct shape {
     unsigned char colors[4];
     int last_point;
-    float points[RM_MAX_POINTS][2];
+    struct vec2 {
+        float y;
+        float x;
+    } points[RM_MAX_POINTS];
 } g_shapes[RM_MAX_SHAPES];
 extern int g_cur_shape;
 extern int g_last_shape;

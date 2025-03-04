@@ -107,8 +107,8 @@ void device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height,
 
         int idx = g_shapes[g_cur_shape].last_point;
 
-        g_shapes[g_cur_shape].points[idx][1] = -screen_coord_to_opengl(ctx->input.mouse.pos.y, height);
-        g_shapes[g_cur_shape].points[idx][0] = screen_coord_to_opengl(ctx->input.mouse.pos.x, width);
+        g_shapes[g_cur_shape].points[idx].y = screen_coord_to_opengl(ctx->input.mouse.pos.y, height);
+        g_shapes[g_cur_shape].points[idx].x = screen_coord_to_opengl(ctx->input.mouse.pos.x, width);
 
         g_shapes[g_cur_shape].last_point++;
     }
@@ -379,9 +379,9 @@ right_click_panel(struct nk_context* ctx)
         static float pos;
         static const char* weapons[] = {
                 "Couleur",
-                "Polygone � d�couper",
-                "Trac� fen�tre",
-                "Fen�trage",
+                "Polygone à découper",
+                "Tracé fenêtre",
+                "Fenêtrage",
                 "Remplissage" };
         const float step = (2 * 3.141592654f) / 32;
 
@@ -393,6 +393,10 @@ right_click_panel(struct nk_context* ctx)
         nk_layout_row_dynamic(ctx, 120, 2);
         nk_label(ctx, "Couleur :", NK_TEXT_LEFT);
         g_current_color = nk_rgb_cf(nk_color_picker(ctx, nk_color_cf(g_current_color), NK_RGB));
+        g_shapes[g_cur_shape].colors[0] = g_current_color.r;
+        g_shapes[g_cur_shape].colors[1] = g_current_color.g;
+        g_shapes[g_cur_shape].colors[2] = g_current_color.b;
+        g_shapes[g_cur_shape].colors[3] = g_current_color.a;
         nk_layout_row_dynamic(ctx, 30, 2);
         nk_check_label(ctx, "inactive", 0);
         nk_check_label(ctx, "active", 1);

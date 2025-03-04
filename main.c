@@ -41,14 +41,15 @@ const char* fragmentShaderSource = "#version 330 core\n"
 "  FragColor = vec4(vec3(color), 1.0);\n"
 "}\0";
  */
-const char* fragmentShaderSource = "#version 330 core\n"
-                                   "in vec2 TexCoord;\n"
-                                   "out vec4 FragColor;\n"
-                                   "uniform sampler2D texture1;\n"
-                                   "void main()\n"
-                                   "{\n"
-                                   "  FragColor = texture(texture1, TexCoord);\n"
-                                   "}\0";
+const char* fragmentShaderSource =
+        "#version 330 core\n"
+       "in vec2 TexCoord;\n"
+       "out vec4 FragColor;\n"
+       "uniform sampler2D texture1;\n"
+       "void main()\n"
+       "{\n"
+       "  FragColor = texture(texture1, TexCoord);\n"
+       "}\0";
 
 
 unsigned int VBO, VAO, EBO, shaderProgram;
@@ -128,6 +129,10 @@ static void drawPolygon() {
 #define texHeight 256
 unsigned char textureData[texWidth * texHeight * 3];
 
+float cross(float w1, float h1, float w2, float h2) {
+    return w1 * h2 - h1 * w2;
+}
+
 float angle(float y1, float x1, float y2, float x2, float pivoty, float pivotx)
 {
     // on calcule produit scalaire des deux vecteurs
@@ -140,19 +145,85 @@ float angle(float y1, float x1, float y2, float x2, float pivoty, float pivotx)
     float rad = acosf(costheta);
     float degrees = rad * 180.0f / (float)M_PI;
 
+    // si produit vectoriel negatif, on prend l'angle opposé
+    /*if(cross(x1 - pivotx, y2 - pivoty,  y1 - pivoty, x2 - pivotx) < 0) {
+        degrees = 360 - degrees;
+    }*/
+
     return degrees;
 }
 
 _Bool is_inside_polygon(float y, float x)
 {
-    float y1 = g_shapes[g_cur_shape].points[0][0];
-    float x1 = g_shapes[g_cur_shape].points[0][1];
-    float y2 = g_shapes[g_cur_shape].points[1][0];
-    float x2 = g_shapes[g_cur_shape].points[1][1];
-    float y3 = g_shapes[g_cur_shape].points[2][0];
-    float x3 = g_shapes[g_cur_shape].points[2][1];
+    float y1 = g_shapes[g_cur_shape].points[0].y;
+    float x1 = g_shapes[g_cur_shape].points[0].x;
+    float y2 = g_shapes[g_cur_shape].points[1].y;
+    float x2 = g_shapes[g_cur_shape].points[1].x;
+    float y3 = g_shapes[g_cur_shape].points[2].y;
+    float x3 = g_shapes[g_cur_shape].points[2].x;
 
-    return angle(y1, x1, y2, x2, y, x) + angle(y2, x2, y3, x3, y, x) + angle(y3, x3, y1, x1, y, x) > 0;
+    float a1 = angle(y1, x1, y2, x2, y, x);
+    float a2 = angle(y2, x2, y3, x3, y, x);
+    float a3 = angle(y3, x3, y1, x1, y, x);
+
+    //printf("Angles at (%.2f, %.2f): A1 = %.2f°, A2 = %.2f°, A3 = %.2f°\n", x, y, a1, a2, a3);
+
+    //return angle(y1, x1, y2, x2, y, x) + angle(y2, x2, y3, x3, y, x) + angle(y3, x3, y1, x1, y, x) > 0;
+
+    // Compute barycentric coordinates
+    float denominator = (y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3);
+    float a = ((y2 - y3) * (x - x3) + (x3 - x2) * (y - y3)) / denominator;
+    float b = ((y3 - y1) * (x - x3) + (x1 - x3) * (y - y3)) / denominator;
+    float c = 1.0f - a - b;
+
+    // A point is inside the triangle if all barycentric coordinates are between 0 and 1
+    return (a >= 0) && (b >= 0) && (c >= 0);
+
+}
+
+#define LINE_THICKNESS 0.01f // Adjust this value for thicker/thinner edges
+
+// Function to calculate the distance from a point (px, py) to a line segment (x1, y1) -> (x2, y2)
+float point_line_distance(float px, float py, float x1, float y1, float x2, float y2) {
+    float A = px - x1;
+    float B = py - y1;
+    float C = x2 - x1;
+    float D = y2 - y1;
+
+    float dot = A * C + B * D;
+    float len_sq = C * C + D * D;
+    float param = (len_sq != 0) ? (dot / len_sq) : -1;
+
+    float xx, yy;
+    if (param < 0) {
+        xx = x1;
+        yy = y1;
+    } else if (param > 1) {
+        xx = x2;
+        yy = y2;
+    } else {
+        xx = x1 + param * C;
+        yy = y1 + param * D;
+    }
+
+    float dx = px - xx;
+    float dy = py - yy;
+    return sqrtf(dx * dx + dy * dy);
+}
+
+// Check if a point is close to any of the polygon's edges
+_Bool is_on_line(float y, float x) {
+    int last = g_shapes[g_cur_shape].last_point;
+    for(int i = 0; i < last ; i++) {
+        float y1 = g_shapes[g_cur_shape].points[i].y;
+        float x1 = g_shapes[g_cur_shape].points[i].x;
+        float y2 = g_shapes[g_cur_shape].points[(i + 1) % last].y;
+        float x2 = g_shapes[g_cur_shape].points[(i + 1) % last].x;
+
+        if (point_line_distance(x, y, x1, y1, x2, y2) < LINE_THICKNESS)
+            return 1;
+    }
+    return 0;
 }
 
 void generateTexture()
@@ -160,14 +231,18 @@ void generateTexture()
     for (int y = 0; y < texHeight ; y++) {
         for (int x = 0; x < texWidth; x++) {
             int index = (y * texWidth + x) * 3;
-            if (is_inside_polygon(1 - ((float)y * 2.f / texHeight - 1), (float)x * 2.f / texWidth - 1)) {
+
+            float normX = ((float)x / texWidth) * 2.0f - 1.0f;
+            float normY = (1.0f - ((float)y / texHeight)) * 2.0f - 1.0f;
+
+            if (is_on_line( normY, normX)) {
                 textureData[index] = g_shapes[g_cur_shape].colors[0];
                 textureData[index + 1] = g_shapes[g_cur_shape].colors[1];
                 textureData[index + 2] = g_shapes[g_cur_shape].colors[2];
             } else {
-                textureData[index] = 0;
-                textureData[index + 1] = 0;
-                textureData[index + 2] = 0;
+                textureData[index] = 255;
+                textureData[index + 1] = 255;
+                textureData[index + 2] = 255;
             }
         }
     }
@@ -177,8 +252,8 @@ void loadTexture() {
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
@@ -187,7 +262,6 @@ void loadTexture() {
 static void error_callback(int e, const char *d){
     printf("Error %d: %s\n", e, d);
 }
-
 
 int main(int argc, char *argv[])
 {
@@ -205,6 +279,7 @@ int main(int argc, char *argv[])
         fprintf(stdout, "[GFLW] failed to init!\n");
         exit(1);
     }
+
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -249,6 +324,11 @@ int main(int argc, char *argv[])
         /* Draw */
         glViewport(0, 0, display_width, display_height);
         glClear(GL_COLOR_BUFFER_BIT);
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+        generateTexture();
+        loadTexture();
+
         drawPolygon();
 
         device_draw(&device, &device.ctx, width, height, scale, NK_ANTI_ALIASING_OFF);
@@ -259,4 +339,3 @@ int main(int argc, char *argv[])
     glfwTerminate();
     return 0;
 }
-
