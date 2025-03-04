@@ -105,12 +105,15 @@ void device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height,
     /* Nos points à nous */
     if (nk_input_is_mouse_released(&ctx->input, NK_BUTTON_LEFT)) {
 
-        int idx = g_shapes[g_cur_shape].last_point;
+        // Prevent adding points if the mouse is interacting with the UI
+        if (!nk_window_is_any_hovered(ctx)) {
+            int idx = g_shapes[g_cur_shape].last_point;
 
-        g_shapes[g_cur_shape].points[idx].y = screen_coord_to_opengl(ctx->input.mouse.pos.y, height);
-        g_shapes[g_cur_shape].points[idx].x = screen_coord_to_opengl(ctx->input.mouse.pos.x, width);
+            g_shapes[g_cur_shape].points[idx].y = screen_coord_to_opengl(ctx->input.mouse.pos.y, height);
+            g_shapes[g_cur_shape].points[idx].x = screen_coord_to_opengl(ctx->input.mouse.pos.x, width);
 
-        g_shapes[g_cur_shape].last_point++;
+            g_shapes[g_cur_shape].last_point++;
+        }
     }
 
     color_shower(ctx);
