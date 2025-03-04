@@ -11,4 +11,6 @@ extern struct shape {
     } points[RM_MAX_POINTS];
 } g_shapes[RM_MAX_SHAPES];
 extern int g_cur_shape;
-extern int g_last_shape;
+
+extern struct shape g_clips[RM_MAX_SHAPES];
+extern int g_cur_clip;

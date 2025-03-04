@@ -19,6 +19,9 @@
 #include "gui.h"
 
 
+static _Bool is_clip_drawing = 0;
+static _Bool right_panel_showed = 0;
+
 /*
   Convertir coordonnées ecran 0->800 vers opengl -1 -> 1
 */
@@ -93,8 +96,6 @@ void device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height,
         nk_input_end(ctx);
     }
 
-    static _Bool right_panel_showed = 0;
-
     if (nk_input_is_mouse_released(&ctx->input, NK_BUTTON_RIGHT)) {
         right_panel_showed = !right_panel_showed;
     }
@@ -103,10 +104,29 @@ void device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height,
         right_click_panel(ctx);
 
     /* Nos points à nous */
-    if (nk_input_is_mouse_released(&ctx->input, NK_BUTTON_LEFT)) {
+    if (!nk_window_is_any_hovered(ctx)) {
+        if(is_clip_drawing) {
+            if(nk_input_is_mouse_pressed(&ctx->input, NK_BUTTON_LEFT)) {
+                g_clips[g_cur_clip].points[0].y = screen_coord_to_opengl(ctx->input.mouse.pos.y, height);
+                g_clips[g_cur_clip].points[0].x = screen_coord_to_opengl(ctx->input.mouse.pos.x, width);
+            } else if (nk_input_is_mouse_down(&ctx->input, NK_BUTTON_LEFT)) {
+                g_clips[g_cur_clip].last_point = 4;
+                g_clips[g_cur_clip].points[2].y = screen_coord_to_opengl(ctx->input.mouse.pos.y, height);
+                g_clips[g_cur_clip].points[2].x = screen_coord_to_opengl(ctx->input.mouse.pos.x, width);
+                g_clips[g_cur_clip].points[1].y = g_clips[g_cur_clip].points[0].y;
+                g_clips[g_cur_clip].points[1].x = g_clips[g_cur_clip].points[2].x;
+                g_clips[g_cur_clip].points[3].y = g_clips[g_cur_clip].points[2].y;
+                g_clips[g_cur_clip].points[3].x = g_clips[g_cur_clip].points[0].x;
+            }
+            else if (nk_input_is_mouse_released(&ctx->input, NK_BUTTON_RIGHT)) {
+                is_clip_drawing = 0;
+                g_clips[g_cur_clip].last_point = 0;
+            }
+        }
+        else if (nk_input_is_mouse_released(&ctx->input, NK_BUTTON_LEFT)) {
 
         // Prevent adding points if the mouse is interacting with the UI
-        if (!nk_window_is_any_hovered(ctx)) {
+
             int idx = g_shapes[g_cur_shape].last_point;
 
             g_shapes[g_cur_shape].points[idx].y = screen_coord_to_opengl(ctx->input.mouse.pos.y, height);
@@ -415,6 +435,13 @@ right_click_panel(struct nk_context* ctx)
         nk_edit_string(ctx, NK_EDIT_FIELD, field_buffer, &field_len, 64, nk_filter_default);
         nk_property_float(ctx, "#X:", -1024.0f, &pos, 1024.0f, 1, 1);
         current_weapon = nk_combo(ctx, weapons, LEN(weapons), current_weapon, 25, nk_vec2(nk_widget_width(ctx), 200));
+
+        printf("current selection %d\n", current_weapon);
+        if(current_weapon == 2) {
+            is_clip_drawing = 1;
+            right_panel_showed = 0;
+            current_weapon = 0;
+        }
 
         nk_layout_row_dynamic(ctx, 250, 1);
         if (nk_group_begin(ctx, "Standard", NK_WINDOW_BORDER | NK_WINDOW_BORDER))

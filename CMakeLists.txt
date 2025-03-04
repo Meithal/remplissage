@@ -11,7 +11,7 @@ target_include_directories(fenetrage_remplissage PRIVATE glfw/include)
 add_subdirectory(glfw)
 target_link_libraries(fenetrage_remplissage PRIVATE glfw)
 
-add_subdirectory(glew/build/cmake)
+#add_subdirectory(glew/build/cmake)
 
 add_executable(nuk_canvas Nuklear/example/canvas.c)
 target_link_libraries(nuk_canvas PRIVATE glfw glew)
