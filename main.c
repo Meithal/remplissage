@@ -14,6 +14,10 @@
 #include "gui.h"
 #include "shapes.h"
 #include "decoupage.h"
+#include "remplissage.h"
+
+
+_Bool should_generate_texture = 1;
 
 /* Forme Lesly */
 
@@ -223,12 +227,24 @@ _Bool is_on_clip_line(float y, float x) {
 
 void generateTexture()
 {
+    _Bool isInside = 0;
+    struct vec2 intersections[RM_MAX_POINTS] = {0};
+
+
     for (int y = 0; y < texHeight ; y++) {
+
+        /*
+        calculate_intersections(
+                (struct vec2){.y = -norm(y, texHeight), .x = norm(0, texWidth)},
+                (struct vec2){.y = -norm(y, texHeight), .x = norm(texWidth, texWidth)},
+                        intersections);
+*/
+
         for (int x = 0; x < texWidth; x++) {
             int index = (y * texWidth + x) * 3;
 
-            float normX = ((float)x / texWidth) * 2.0f - 1.0f;
-            float normY = (1.0f - ((float)y / texHeight)) * 2.0f - 1.0f;
+            float normX = norm(x, texWidth);
+            float normY = -norm(y, texHeight);
 
             if (is_on_line( normY, normX)) {
                 textureData[index] = g_shapes[g_cur_shape].colors[0];
@@ -253,8 +269,8 @@ void loadTexture() {
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
@@ -311,6 +327,7 @@ int main(int argc, char *argv[])
     generateTexture();
     loadTexture();
 
+
     while (!glfwWindowShouldClose(win))
     {
         /* High DPI displays */
@@ -320,15 +337,19 @@ int main(int argc, char *argv[])
         scale.x = (float)display_width/(float)width;
         scale.y = (float)display_height/(float)height;
 
-        device_loop(&device.ctx, win, width, height);
+        should_generate_texture = device_loop(&device.ctx, win, width, height);
 
         /* Draw */
         glViewport(0, 0, display_width, display_height);
         glClear(GL_COLOR_BUFFER_BIT);
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-        generateTexture();
-        loadTexture();
+        if(should_generate_texture) {
+            generateTexture();
+            loadTexture();
+
+            should_generate_texture = 0;
+        }
 
         drawPolygon();
 

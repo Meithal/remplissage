@@ -70,7 +70,7 @@ struct device {
 static struct nk_color g_current_color;
 
 
-static void
+static _Bool
 color_shower(struct nk_context* ctx);
 static void
 right_click_panel(struct nk_context* ctx);
@@ -85,4 +85,4 @@ void device_shutdown(struct device* dev);
 void text_input(GLFWwindow* win, unsigned int codepoint);
 void scroll_input(GLFWwindow* win, double _, double yoff);
 void device_main(const char* font_path, struct device* device);
-void device_loop(struct nk_context* ctx, GLFWwindow* win, int width, int height);
+_Bool device_loop(struct nk_context* ctx, GLFWwindow* win, int width, int height);

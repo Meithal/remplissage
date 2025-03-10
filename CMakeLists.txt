@@ -3,9 +3,18 @@ project(fenetrage_remplissage C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(fenetrage_remplissage main.c glad/src/glad.c gui.h gui.c shapes.h shapes.c
+add_executable(fenetrage_remplissage 
+        main.c 
+        glad/src/glad.c 
+        gui.h 
+        gui.c 
+        shapes.h 
+        shapes.c
         decoupage.c
-        decoupage.h)
+        decoupage.h
+        remplissage.c
+        remplissage.h
+)
 
 target_include_directories(fenetrage_remplissage PRIVATE glad/include)
 target_include_directories(fenetrage_remplissage PRIVATE glfw/include)
@@ -90,3 +99,11 @@ add_custom_target(copy_nuk_fonts ALL DEPENDS ${NUK_FONTS_BUILD_DIR})
 add_custom_target(copy_nuk_skins ALL DEPENDS ${NUK_SKINS_BUILD_DIR})
 ADD_DEPENDENCIES ( nuk_extended copy_nuk_icons copy_nuk_images copy_nuk_fonts)
 ADD_DEPENDENCIES ( nuk_skin copy_nuk_skins)
+
+
+# Add a custom target to run the executable
+add_custom_target(run
+    COMMAND $<TARGET_FILE:fenetrage_remplissage>
+    DEPENDS fenetrage_remplissage
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

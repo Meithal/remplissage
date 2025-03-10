@@ -57,8 +57,9 @@ void device_main(const char* font_path, struct device * device)
 
 }
 
-void device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height)
+_Bool device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height)
 {
+    _Bool should_redraw = 0;
 
     /* Input */
     {
@@ -104,6 +105,8 @@ void device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height)
 
     /* Nos points à nous */
     if (!nk_window_is_any_hovered(ctx)) {
+        should_redraw = 1;
+
         if(is_clip_drawing) {
             if(nk_input_is_mouse_pressed(&ctx->input, NK_BUTTON_LEFT)) {
                 g_clips[g_cur_clip].points[0].y = screen_coord_to_opengl(ctx->input.mouse.pos.y, height);
@@ -132,10 +135,14 @@ void device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height)
             g_shapes[g_cur_shape].points[idx].x = screen_coord_to_opengl(ctx->input.mouse.pos.x, width);
 
             g_shapes[g_cur_shape].last_point++;
+        } else {
+            should_redraw = 0;
         }
     }
 
-    color_shower(ctx);
+    should_redraw |= color_shower(ctx);
+
+    return should_redraw;
 }
 
 static void
@@ -468,9 +475,11 @@ right_click_panel(struct nk_context* ctx)
     nk_end(ctx);
 }
 
-static void
+static _Bool
 color_shower(struct nk_context* ctx)
 {
+    _Bool refresh = 0;
+
     static char text[3][64];
     static int text_len[3];
     static const char* items[] = { "Item 0","item 1","item 2" };
@@ -481,6 +490,7 @@ color_shower(struct nk_context* ctx)
         NK_WINDOW_TITLE | NK_WINDOW_BORDER | NK_WINDOW_MOVABLE |
         NK_WINDOW_NO_SCROLLBAR))
     {
+        refresh = 1;
 
         nk_layout_row_dynamic(ctx, 10, 2);
         nk_label(ctx, "Couleur selectionne:", NK_TEXT_RIGHT);
@@ -492,6 +502,8 @@ color_shower(struct nk_context* ctx)
         nk_fill_rect(&ctx->current->buffer, total_space, 0, g_current_color);
     }
     nk_end(ctx);
+
+    return refresh;
 }
 
 void text_input(GLFWwindow* win, unsigned int codepoint)

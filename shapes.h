@@ -15,3 +15,6 @@ extern int g_cur_shape;
 
 extern struct shape g_clips[RM_MAX_SHAPES];
 extern int g_cur_clip;
+
+float norm(int pixel, int width);
+int tex(float coord, int width);

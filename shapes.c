@@ -19,4 +19,14 @@ struct shape g_clips[RM_MAX_SHAPES] = {
                 .points = {}
         }
 };
+
 int g_cur_clip = 0;
+
+float norm(int pixel, int width) {
+    return (float)pixel / width * 2 - 1;
+}
+
+int tex(float coord, int width)
+{
+    return (coord * 0.5f + 1) * width;
+}
