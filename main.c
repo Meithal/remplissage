@@ -70,7 +70,6 @@ unsigned int indices[] = {
         1, 3, 2
 };
 
-
 static void initPolygon() {
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -157,9 +156,9 @@ float angle(float y1, float x1, float y2, float x2, float pivoty, float pivotx)
     return degrees;
 }
 
-#define LINE_THICKNESS 0.005f // Adjust this value for thicker/thinner edges
+#define LINE_THICKNESS 0.005f // La largeur des traits de polygone. TODO, rendre ca specifique a chaque polygone
 
-// Function to calculate the distance from a point (px, py) to a line segment (x1, y1) -> (x2, y2)
+// Distance d'un point (px, py) a un segment (x1, y1) -> (x2, y2)
 float point_line_distance(float px, float py, float x1, float y1, float x2, float y2) {
     float A = px - x1;
     float B = py - y1;
@@ -187,25 +186,27 @@ float point_line_distance(float px, float py, float x1, float y1, float x2, floa
     return sqrtf(dx * dx + dy * dy);
 }
 
-// Check if a point is close to any of the polygon's edges
+// Verifie si un point de notre canvas est proche d'un segment
 _Bool is_on_line(float y, float x) {
-    int last = g_shapes[g_cur_shape].last_point;
-    for(int i = 0; i < last ; i++) {
-        float y1 = g_shapes[g_cur_shape].points[i].y;
-        float x1 = g_shapes[g_cur_shape].points[i].x;
-        float y2 = g_shapes[g_cur_shape].points[(i + 1) % last].y;
-        float x2 = g_shapes[g_cur_shape].points[(i + 1) % last].x;
-
-        if(g_clips[g_cur_clip].last_point > 0) {
-            if(!CohenSutherlandLineClip(
-                    &x1, &y1, &x2, &y2,
-                    g_clips[g_cur_clip].points[2].y, g_clips[g_cur_clip].points[0].y,
-                    g_clips[g_cur_clip].points[2].x, g_clips[g_cur_clip].points[0].x))
-                continue;
+    for (int i_shape_index = 0; i_shape_index < g_last_shape ; i_shape_index++) {
+        int last = g_shapes[i_shape_index].last_point;
+        for(int i = 0; i < last ; i++) {
+            float y1 = g_shapes[i_shape_index].points[i].y;
+            float x1 = g_shapes[i_shape_index].points[i].x;
+            float y2 = g_shapes[i_shape_index].points[(i + 1) % last].y;
+            float x2 = g_shapes[i_shape_index].points[(i + 1) % last].x;
+            
+            if(g_clips[g_cur_clip].last_point > 0) {
+                if(!CohenSutherlandLineClip(
+                                            &x1, &y1, &x2, &y2,
+                                            g_clips[g_cur_clip].points[2].y, g_clips[g_cur_clip].points[0].y,
+                                            g_clips[g_cur_clip].points[2].x, g_clips[g_cur_clip].points[0].x))
+                    continue;
+            }
+            
+            if (point_line_distance(x, y, x1, y1, x2, y2) < LINE_THICKNESS)
+                return 1;
         }
-
-        if (point_line_distance(x, y, x1, y1, x2, y2) < LINE_THICKNESS)
-            return 1;
     }
     return 0;
 }
@@ -225,6 +226,9 @@ _Bool is_on_clip_line(float y, float x) {
     return 0;
 }
 
+/**
+ Redessine notre texture qui correspond au canvas
+ */
 void generateTexture()
 {
     _Bool isInside = 0;
@@ -241,15 +245,15 @@ void generateTexture()
 */
 
         for (int x = 0; x < texWidth; x++) {
+            
             int index = (y * texWidth + x) * 3;
-
             float normX = norm(x, texWidth);
             float normY = -norm(y, texHeight);
 
             if (is_on_line( normY, normX)) {
-                textureData[index] = g_shapes[g_cur_shape].colors[0];
-                textureData[index + 1] = g_shapes[g_cur_shape].colors[1];
-                textureData[index + 2] = g_shapes[g_cur_shape].colors[2];
+                textureData[index] = g_shapes[g_active_shape].colors[0];
+                textureData[index + 1] = g_shapes[g_active_shape].colors[1];
+                textureData[index + 2] = g_shapes[g_active_shape].colors[2];
             }
             else if(is_on_clip_line( normY, normX)) {
                 textureData[index] = g_clips[g_cur_clip].colors[0];
@@ -275,6 +279,30 @@ void loadTexture() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
+void treatInput(struct remplissage_gui_bridge * gui_bridge)
+{
+    /** Logique d'addition de points */
+    if(gui_bridge->is_ask_click_canvas) {
+        int idx = g_shapes[g_active_shape].last_point;
+
+        g_shapes[g_active_shape].points[idx].y = convert_to_ratio(gui_bridge->y_click_canvas, 0, gui_bridge->canvas_height, -1, 1);
+        g_shapes[g_active_shape].points[idx].x = convert_to_ratio(gui_bridge->x_click_canvas, 0, gui_bridge->canvas_width, -1, 1);
+
+        g_shapes[g_active_shape].last_point++;
+        
+        gui_bridge->is_ask_click_canvas = 0;
+    }
+    
+    if(gui_bridge->is_ask_change_color) {
+        g_shapes[g_active_shape].colors[0] = gui_bridge->remplissage_colors[0];
+        g_shapes[g_active_shape].colors[1] = gui_bridge->remplissage_colors[1];
+        g_shapes[g_active_shape].colors[2] = gui_bridge->remplissage_colors[2];
+        g_shapes[g_active_shape].colors[3] = gui_bridge->remplissage_colors[3];
+        
+        gui_bridge->is_ask_change_color = 0;
+    }
+}
+
 /* glfw callbacks (I don't know if there is a easier way to access text and scroll )*/
 static void error_callback(int e, const char *d){
     printf("Error %d: %s\n", e, d);
@@ -289,6 +317,10 @@ int main(int argc, char *argv[])
 
     /* nuklear device */
     struct device device;
+
+    /* bridge between our logic and the GUI */
+    struct remplissage_gui_bridge
+    gui_bridge;
 
     /* GLFW */
     glfwSetErrorCallback(error_callback);
@@ -338,7 +370,7 @@ int main(int argc, char *argv[])
         scale.x = (float)display_width/(float)width;
         scale.y = (float)display_height/(float)height;
 
-        should_generate_texture = device_loop(device.ctx, win, width, height);
+        should_generate_texture = device_loop(device.ctx, win, width, height, &gui_bridge);
 
         /* Draw */
         glViewport(0, 0, display_width, display_height);
@@ -346,6 +378,7 @@ int main(int argc, char *argv[])
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
         if(should_generate_texture) {
+            treatInput(&gui_bridge);
             generateTexture();
             loadTexture();
 

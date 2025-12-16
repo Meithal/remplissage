@@ -19,6 +19,18 @@
 #define MAX(a,b) ((a) < (b) ? (b) : (a))
 #define LEN(a) (sizeof(a)/sizeof(a)[0])
 
+
+struct remplissage_gui_bridge {
+    _Bool is_ask_click_canvas;
+    float x_click_canvas;
+    float canvas_width;
+    float y_click_canvas;
+    float canvas_height;
+    _Bool is_ask_change_color;
+    unsigned char remplissage_colors[4];
+    _Bool is_drawing_clip;
+};
+
 struct media {
     GLint skin;
     struct nk_image menu;
@@ -70,19 +82,37 @@ struct device {
 static struct nk_color g_current_color;
 
 
-static _Bool
+static
+_Bool
 color_shower(struct nk_context* ctx);
-static void
-right_click_panel(struct nk_context* ctx);
-static void
+
+static
+void
+right_click_panel(struct nk_context*, struct remplissage_gui_bridge*);
+
+static
+void
 device_init(struct device* dev);
-static void
+
+static
+void
 device_upload_atlas(struct device* dev, const void* image, int width, int height);
 
-void device_draw(struct device* dev, struct nk_context* ctx, int width, int height,
+void
+device_draw(struct device* dev, struct nk_context* ctx, int width, int height,
     struct nk_vec2 scale, enum nk_anti_aliasing AA);
-void device_shutdown(struct device* dev);
-void text_input(GLFWwindow* win, unsigned int codepoint);
-void scroll_input(GLFWwindow* win, double _, double yoff);
-void device_main(const char* font_path, struct device* device);
-_Bool device_loop(struct nk_context* ctx, GLFWwindow* win, int width, int height);
+
+void
+device_shutdown(struct device* dev);
+
+void
+text_input(GLFWwindow* win, unsigned int codepoint);
+
+void
+scroll_input(GLFWwindow* win, double _, double yoff);
+
+void
+device_main(const char* font_path, struct device* device);
+
+_Bool
+device_loop(struct nk_context* ctx, GLFWwindow* win, int width, int height, struct remplissage_gui_bridge*);

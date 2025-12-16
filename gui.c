@@ -14,12 +14,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-
 #include "shapes.h"
 #include "gui.h"
 
-
-static _Bool is_clip_drawing = 0;
 static _Bool right_panel_showed = 0;
 
 struct nk_font_atlas atlas;
@@ -27,9 +24,9 @@ struct nk_context ctx;
 /*
   Convertir coordonnées ecran 0->800 vers opengl -1 -> 1
 */
-static float screen_coord_to_opengl(float screen_coordonnee, int longueur_ecran)
+static float screen_coord_to_opengl(float screen_coordonnee, int coordonnee_max)
 {
-    return (screen_coordonnee / (float)longueur_ecran) * 2 - 1;
+    return (screen_coordonnee / (float)coordonnee_max) * 2 - 1;
 }
 
 /* ===============================================================
@@ -64,7 +61,8 @@ void device_main(const char* font_path, struct device * device)
     }
 }
 
-_Bool device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height)
+/** Verifie les inputs utilisateurs et retourne si il faut redessinner ou non le canvas. */
+_Bool device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height, struct remplissage_gui_bridge* gui_bridge)
 {
     _Bool should_redraw = 0;
 
@@ -107,18 +105,20 @@ _Bool device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height
         right_panel_showed = !right_panel_showed;
     }
 
-    if (right_panel_showed)
-        right_click_panel(ctx);
+    if (right_panel_showed) {
+        right_click_panel(ctx, gui_bridge);
+    }
 
     /* Nos points à nous */
     if (!nk_window_is_any_hovered(ctx)) {
         should_redraw = 1;
 
-        if(is_clip_drawing) {
+        if(gui_bridge->is_drawing_clip) {
             if(nk_input_is_mouse_pressed(&ctx->input, NK_BUTTON_LEFT)) {
                 g_clips[g_cur_clip].points[0].y = screen_coord_to_opengl(ctx->input.mouse.pos.y, height);
                 g_clips[g_cur_clip].points[0].x = screen_coord_to_opengl(ctx->input.mouse.pos.x, width);
-            } else if (nk_input_is_mouse_down(&ctx->input, NK_BUTTON_LEFT)) {
+            }
+            else if (nk_input_is_mouse_down(&ctx->input, NK_BUTTON_LEFT)) {
                 g_clips[g_cur_clip].last_point = 4;
                 g_clips[g_cur_clip].points[2].y = screen_coord_to_opengl(ctx->input.mouse.pos.y, height);
                 g_clips[g_cur_clip].points[2].x = screen_coord_to_opengl(ctx->input.mouse.pos.x, width);
@@ -128,20 +128,27 @@ _Bool device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height
                 g_clips[g_cur_clip].points[3].x = g_clips[g_cur_clip].points[0].x;
             }
             else if (nk_input_is_mouse_released(&ctx->input, NK_BUTTON_RIGHT)) {
-                is_clip_drawing = 0;
+                gui_bridge->is_drawing_clip = 0;
                 g_clips[g_cur_clip].last_point = 0;
             }
         }
         else if (nk_input_is_mouse_released(&ctx->input, NK_BUTTON_LEFT)) {
 
         // Prevent adding points if the mouse is interacting with the UI
-
+            gui_bridge->is_ask_click_canvas = 1;
+            gui_bridge->x_click_canvas = ctx->input.mouse.pos.x;
+            gui_bridge->y_click_canvas = ctx->input.mouse.pos.y;
+            gui_bridge->canvas_height = height;
+            gui_bridge->canvas_width = width;
+            
+            /*
             int idx = g_shapes[g_cur_shape].last_point;
 
             g_shapes[g_cur_shape].points[idx].y = screen_coord_to_opengl(ctx->input.mouse.pos.y, height);
             g_shapes[g_cur_shape].points[idx].x = screen_coord_to_opengl(ctx->input.mouse.pos.x, width);
 
             g_shapes[g_cur_shape].last_point++;
+             */
         } else {
             should_redraw = 0;
         }
@@ -400,7 +407,7 @@ device_draw(struct device* dev, struct nk_context* ctx, int width, int height,
 
 
 static void
-right_click_panel(struct nk_context* ctx)
+right_click_panel(struct nk_context* ctx, struct remplissage_gui_bridge * gui_bridge)
 {
     /* GUI */
     if (nk_begin(ctx, "Remplissage", nk_rect(ctx->input.mouse.pos.x, ctx->input.mouse.pos.y, 300, 400),
@@ -429,55 +436,33 @@ right_click_panel(struct nk_context* ctx)
 
         nk_layout_row_dynamic(ctx, 120, 2);
         nk_label(ctx, "Couleur :", NK_TEXT_LEFT);
-        g_current_color = nk_rgb_cf(nk_color_picker(ctx, nk_color_cf(g_current_color), NK_RGB));
-        g_shapes[g_cur_shape].colors[0] = g_current_color.r;
-        g_shapes[g_cur_shape].colors[1] = g_current_color.g;
-        g_shapes[g_cur_shape].colors[2] = g_current_color.b;
-        g_shapes[g_cur_shape].colors[3] = g_current_color.a;
-        nk_layout_row_dynamic(ctx, 30, 2);
-        nk_check_label(ctx, "inactive", 0);
-        nk_check_label(ctx, "active", 1);
-        nk_option_label(ctx, "active", 1);
-        nk_option_label(ctx, "inactive", 0);
-
-        nk_layout_row_dynamic(ctx, 30, 1);
-        nk_slider_int(ctx, 0, &slider, 16, 1);
-        nk_layout_row_dynamic(ctx, 20, 1);
-        nk_progress(ctx, &prog_value, 100, NK_MODIFIABLE);
+        struct nk_colorf color;
+        nk_bool picked_color = nk_color_pick(ctx, &color, NK_RGB);
+        //g_current_color = nk_rgb_cf(nk_color_picker(ctx, nk_color_cf(g_current_color), NK_RGB));
+        gui_bridge->is_ask_change_color = picked_color;
+        if(picked_color) {
+            gui_bridge->remplissage_colors[0] = color.r;
+            gui_bridge->remplissage_colors[1] = color.g;
+            gui_bridge->remplissage_colors[2] = color.b;
+            gui_bridge->remplissage_colors[3] = color.a;
+        }
+//        g_shapes[g_cur_shape].colors[0] = g_current_color.r;
+//        g_shapes[g_cur_shape].colors[1] = g_current_color.g;
+//        g_shapes[g_cur_shape].colors[2] = g_current_color.b;
+//        g_shapes[g_cur_shape].colors[3] = g_current_color.a;
 
         nk_layout_row_dynamic(ctx, 25, 1);
-        nk_edit_string(ctx, NK_EDIT_FIELD, field_buffer, &field_len, 64, nk_filter_default);
-        nk_property_float(ctx, "#X:", -1024.0f, &pos, 1024.0f, 1, 1);
+
         current_weapon = nk_combo(ctx, weapons, LEN(weapons), current_weapon, 25, nk_vec2(nk_widget_width(ctx), 200));
 
         printf("current selection %d\n", current_weapon);
         if(current_weapon == 2) {
-            is_clip_drawing = 1;
+            gui_bridge->is_drawing_clip = 1;
             right_panel_showed = 0;
             current_weapon = 0;
         }
 
-        nk_layout_row_dynamic(ctx, 250, 1);
-        if (nk_group_begin(ctx, "Standard", NK_WINDOW_BORDER))
-        {
-            if (nk_tree_push(ctx, NK_TREE_NODE, "Window", NK_MAXIMIZED)) {
-                static int selected[8];
-                if (nk_tree_push(ctx, NK_TREE_NODE, "Next", NK_MAXIMIZED)) {
-                    nk_layout_row_dynamic(ctx, 20, 1);
-                    for (i = 0; i < 4; ++i)
-                        nk_selectable_label(ctx, (selected[i]) ? "Selected" : "Unselected", NK_TEXT_LEFT, &selected[i]);
-                    nk_tree_pop(ctx);
-                }
-                if (nk_tree_push(ctx, NK_TREE_NODE, "Previous", NK_MAXIMIZED)) {
-                    nk_layout_row_dynamic(ctx, 20, 1);
-                    for (i = 4; i < 8; ++i)
-                        nk_selectable_label(ctx, (selected[i]) ? "Selected" : "Unselected", NK_TEXT_LEFT, &selected[i]);
-                    nk_tree_pop(ctx);
-                }
-                nk_tree_pop(ctx);
-            }
-            nk_group_end(ctx);
-        }
+
     }
     nk_end(ctx);
 }

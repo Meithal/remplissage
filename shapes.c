@@ -9,7 +9,8 @@ struct shape g_shapes[RM_MAX_SHAPES] = {
         }
 };
 
-int g_cur_shape = 0;
+int g_active_shape = 0;
+int g_last_shape = 1; // borne superieure exclusive des shapes qu'on doit dessiner
 
 struct shape g_clips[RM_MAX_SHAPES] = {
         {
@@ -29,4 +30,16 @@ float norm(int pixel, int width) {
 int tex(float coord, int width)
 {
     return (coord * 0.5f + 1) * width;
+}
+
+float convert_to_ratio(float value, float low_bound, float high_bound, float target_low, float target_high)
+{
+    float fenetre = high_bound - low_bound;
+    float fenetre_cible = target_high - target_low;
+    
+    float ratio = (value - low_bound) / fenetre; // 0-1
+    float ratio_cible = ratio * fenetre_cible;
+    float final = ratio_cible + target_low;
+    
+    return final;
 }
