@@ -13,14 +13,15 @@ Options :
 - [ ] Mode modification de position de point : cliquer sur l'écran ne génére pas des points mais modifie leur position en les draggant 
 - [ ] Activer/Désactiver remplissage
 
--------------- Classes à définir --------------
+Classes à définir
+---
 
-Point.cpp/hpp -> définit un point et ses opérations
-Polygone.cpp/hpp -> définit un polygone
-Fenetre.cpp/hpp -> définit une fenetre
-Texture.cpp/hpp -> définit la texture affiché et ses opération et mises à jour
-Decoupage.cpp/hpp
-Remplissage.cpp/hpp
+- [ ] Point.cpp/hpp -> définit un point et ses opérations
+- [ ] Polygone.cpp/hpp -> définit un polygone
+- [ ] Fenetre.cpp/hpp -> définit une fenetre
+- [ ] Texture.cpp/hpp -> définit la texture affiché et ses opération et mises à jour
+- [ ] Decoupage.cpp/hpp
+- [ ] Remplissage.cpp/hpp
 
 Découpage
 ---
@@ -38,14 +39,14 @@ Bonus
 
 - [ ] Marche de Jarvis pour enrouler un nuage de points.
 
-Pour le fenêtrage :
+### Pour le fenêtrage :
 
 - [ ] Implémenter le découpage par une fenêtre quelconque concave. Utiliser la méthode du ear cutting
 (décomposer la fenêtre concave en plusieurs polygones convexes ou découpage en triangles).
 - [ ] Proposer la gestion d'un zoom. Éventuellement effectuer un lissage de la partie agrandie
 - [ ] Vous êtes libres de rajouter d'autres éléments apportant une touche personnelle au TP
 
-Pour le remplissage :
+### Pour le remplissage :
 
 - [ ] Proposer deux types de remplissage pour les polygones croisé s: une qui compte le nombre
 d'intersections, l'autre le nombre d'enroulement non nul.
@@ -58,7 +59,7 @@ Taches
 
 - [ ] Quand on commence a dessiner un polygone, faire apparaitre
 une fenetre pour mettre un terme au tracé.
-- [ ] Ne pas modifier l'etat interne des formes qu'on dessine a partir de gui.c
+- [x] Ne pas modifier l'etat interne des formes qu'on dessine a partir de gui.c
 
 Taches bonus
 ---

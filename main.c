@@ -16,8 +16,11 @@
 #include "decoupage.h"
 #include "remplissage.h"
 
-
+static
 _Bool should_generate_texture = 1;
+
+static
+_Bool _is_in_clip_mode = 0;
 
 /* Forme Lesly */
 
@@ -128,9 +131,9 @@ static void drawPolygon() {
     glBindVertexArray(0);
 }
 
-#define texWidth 512
-#define texHeight 512
-unsigned char textureData[texWidth * texHeight * 3];
+#define TEX_WIDTH 512
+#define TEX_HEIGHT 512
+unsigned char textureData[TEX_WIDTH * TEX_HEIGHT * 3];
 
 float cross(float w1, float h1, float w2, float h2) {
     return w1 * h2 - h1 * w2;
@@ -235,20 +238,20 @@ void generateTexture()
     struct vec2 intersections[RM_MAX_POINTS] = {0};
 
 
-    for (int y = 0; y < texHeight ; y++) {
+    for (int y = 0; y < TEX_HEIGHT ; y++) {
 
         /*
         calculate_intersections(
-                (struct vec2){.y = -norm(y, texHeight), .x = norm(0, texWidth)},
-                (struct vec2){.y = -norm(y, texHeight), .x = norm(texWidth, texWidth)},
+                (struct vec2){.y = -norm(y, TEX_HEIGHT), .x = norm(0, TEX_WIDTH)},
+                (struct vec2){.y = -norm(y, TEX_HEIGHT), .x = norm(TEX_WIDTH, TEX_WIDTH)},
                         intersections);
 */
 
-        for (int x = 0; x < texWidth; x++) {
+        for (int x = 0; x < TEX_WIDTH; x++) {
             
-            int index = (y * texWidth + x) * 3;
-            float normX = norm(x, texWidth);
-            float normY = -norm(y, texHeight);
+            int index = (y * TEX_WIDTH + x) * 3;
+            float normX = norm(x, TEX_WIDTH);
+            float normY = -norm(y, TEX_HEIGHT);
 
             if (is_on_line( normY, normX)) {
                 textureData[index] = g_shapes[g_active_shape].colors[0];
@@ -272,7 +275,7 @@ void generateTexture()
 void loadTexture() {
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, TEX_WIDTH, TEX_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -281,16 +284,47 @@ void loadTexture() {
 
 void treatInput(struct remplissage_gui_bridge * gui_bridge)
 {
-    /** Logique d'addition de points */
-    if(gui_bridge->is_ask_click_canvas) {
-        int idx = g_shapes[g_active_shape].last_point;
-
-        g_shapes[g_active_shape].points[idx].y = convert_to_ratio(gui_bridge->y_click_canvas, 0, gui_bridge->canvas_height, -1, 1);
-        g_shapes[g_active_shape].points[idx].x = convert_to_ratio(gui_bridge->x_click_canvas, 0, gui_bridge->canvas_width, -1, 1);
-
-        g_shapes[g_active_shape].last_point++;
+    /** Logique de dessin du clip */
+    if(_is_in_clip_mode) {
+        if(gui_bridge->is_clicked_canvas) {
+            g_clips[g_cur_clip].points[0].y = convert_to_ratio(gui_bridge->y_click_canvas, 0, gui_bridge->canvas_height, -1, 1);
+            g_clips[g_cur_clip].points[0].x = convert_to_ratio(gui_bridge->x_click_canvas, 0, gui_bridge->canvas_width, -1, 1);
+            g_clips[g_cur_clip].last_point = 1;
+            
+            gui_bridge->is_clicked_canvas = 0;
+        }
+        else if (gui_bridge->is_dragging_mouse) {
+            g_clips[g_cur_clip].last_point = 4;
+            g_clips[g_cur_clip].points[2].y = convert_to_ratio(gui_bridge->y_click_canvas, 0, gui_bridge->canvas_height, -1, 1);
+            g_clips[g_cur_clip].points[2].x = convert_to_ratio(gui_bridge->x_click_canvas, 0, gui_bridge->canvas_width, -1, 1);
+            g_clips[g_cur_clip].points[1].y = g_clips[g_cur_clip].points[0].y;
+            g_clips[g_cur_clip].points[1].x = g_clips[g_cur_clip].points[2].x;
+            g_clips[g_cur_clip].points[3].y = g_clips[g_cur_clip].points[2].y;
+            g_clips[g_cur_clip].points[3].x = g_clips[g_cur_clip].points[0].x;
+            
+            gui_bridge->is_dragging_mouse = 0;
+        }
         
-        gui_bridge->is_ask_click_canvas = 0;
+        if (gui_bridge->is_mouse_released) {
+            g_clips[g_cur_clip].last_point = 0;
+            
+            gui_bridge->is_mouse_released = 0;
+            
+            _is_in_clip_mode = 0;
+        }
+    }
+    /** Logique d'addition de points */
+    else {
+        if(gui_bridge->is_clicked_canvas) {
+            int idx = g_shapes[g_active_shape].last_point;
+            
+            g_shapes[g_active_shape].points[idx].y = convert_to_ratio(gui_bridge->y_click_canvas, 0, gui_bridge->canvas_height, -1, 1);
+            g_shapes[g_active_shape].points[idx].x = convert_to_ratio(gui_bridge->x_click_canvas, 0, gui_bridge->canvas_width, -1, 1);
+            
+            g_shapes[g_active_shape].last_point++;
+            
+            gui_bridge->is_clicked_canvas = 0;
+        }
     }
     
     if(gui_bridge->is_ask_change_color) {
@@ -301,6 +335,13 @@ void treatInput(struct remplissage_gui_bridge * gui_bridge)
         
         gui_bridge->is_ask_change_color = 0;
     }
+    
+    if(gui_bridge->is_asking_draw_clip) {
+        _is_in_clip_mode = 1;
+        g_clips[g_cur_clip].last_point = 0;
+        gui_bridge->is_asking_draw_clip = 0;
+    }
+
 }
 
 /* glfw callbacks (I don't know if there is a easier way to access text and scroll )*/

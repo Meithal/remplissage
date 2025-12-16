@@ -14,20 +14,12 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include "shapes.h"
 #include "gui.h"
 
 static _Bool right_panel_showed = 0;
 
 struct nk_font_atlas atlas;
 struct nk_context ctx;
-/*
-  Convertir coordonnées ecran 0->800 vers opengl -1 -> 1
-*/
-static float screen_coord_to_opengl(float screen_coordonnee, int coordonnee_max)
-{
-    return (screen_coordonnee / (float)coordonnee_max) * 2 - 1;
-}
 
 /* ===============================================================
  *
@@ -109,54 +101,68 @@ _Bool device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height
         right_click_panel(ctx, gui_bridge);
     }
 
-    /* Nos points à nous */
+    /* Nos points à nous, càd si on survole pas une frame nuklear */
     if (!nk_window_is_any_hovered(ctx)) {
-        should_redraw = 1;
-
-        if(gui_bridge->is_drawing_clip) {
-            if(nk_input_is_mouse_pressed(&ctx->input, NK_BUTTON_LEFT)) {
-                g_clips[g_cur_clip].points[0].y = screen_coord_to_opengl(ctx->input.mouse.pos.y, height);
-                g_clips[g_cur_clip].points[0].x = screen_coord_to_opengl(ctx->input.mouse.pos.x, width);
-            }
-            else if (nk_input_is_mouse_down(&ctx->input, NK_BUTTON_LEFT)) {
-                g_clips[g_cur_clip].last_point = 4;
-                g_clips[g_cur_clip].points[2].y = screen_coord_to_opengl(ctx->input.mouse.pos.y, height);
-                g_clips[g_cur_clip].points[2].x = screen_coord_to_opengl(ctx->input.mouse.pos.x, width);
-                g_clips[g_cur_clip].points[1].y = g_clips[g_cur_clip].points[0].y;
-                g_clips[g_cur_clip].points[1].x = g_clips[g_cur_clip].points[2].x;
-                g_clips[g_cur_clip].points[3].y = g_clips[g_cur_clip].points[2].y;
-                g_clips[g_cur_clip].points[3].x = g_clips[g_cur_clip].points[0].x;
-            }
-            else if (nk_input_is_mouse_released(&ctx->input, NK_BUTTON_RIGHT)) {
-                gui_bridge->is_drawing_clip = 0;
-                g_clips[g_cur_clip].last_point = 0;
-            }
+        
+        
+        gui_bridge->x_click_canvas = ctx->input.mouse.pos.x;
+        gui_bridge->y_click_canvas = ctx->input.mouse.pos.y;
+        gui_bridge->canvas_height = height;
+        gui_bridge->canvas_width = width;
+        
+        if(nk_input_is_mouse_pressed(&ctx->input, NK_BUTTON_LEFT)) {
+            gui_bridge->is_clicked_canvas = 1;
+            should_redraw = 1;
         }
-        else if (nk_input_is_mouse_released(&ctx->input, NK_BUTTON_LEFT)) {
 
-        // Prevent adding points if the mouse is interacting with the UI
-            gui_bridge->is_ask_click_canvas = 1;
-            gui_bridge->x_click_canvas = ctx->input.mouse.pos.x;
-            gui_bridge->y_click_canvas = ctx->input.mouse.pos.y;
-            gui_bridge->canvas_height = height;
-            gui_bridge->canvas_width = width;
-            
-            /*
-            int idx = g_shapes[g_cur_shape].last_point;
-
-            g_shapes[g_cur_shape].points[idx].y = screen_coord_to_opengl(ctx->input.mouse.pos.y, height);
-            g_shapes[g_cur_shape].points[idx].x = screen_coord_to_opengl(ctx->input.mouse.pos.x, width);
-
-            g_shapes[g_cur_shape].last_point++;
-             */
-        } else {
-            should_redraw = 0;
+        if (nk_input_is_mouse_down(&ctx->input, NK_BUTTON_LEFT)) {
+            gui_bridge->is_dragging_mouse = 1;
+            should_redraw = 1;
         }
+        
+        if (nk_input_is_mouse_released(&ctx->input, NK_BUTTON_RIGHT)) {
+            gui_bridge->is_mouse_released = 1;
+            should_redraw = 1;
+        }
+    } else {
+        should_redraw = 0;
     }
-
+    
     should_redraw |= color_shower(ctx);
 
     return should_redraw;
+}
+
+
+static _Bool
+color_shower(struct nk_context* ctx)
+{
+    _Bool refresh = 0;
+
+    static char text[3][64];
+    static int text_len[3];
+    static const char* items[] = { "Item 0","item 1","item 2" };
+    static int selected_item = 0;
+    static int check = 1;
+
+    if (nk_begin(ctx, "Selected color", nk_rect(600, 350, 275, 50),
+        NK_WINDOW_TITLE | NK_WINDOW_BORDER | NK_WINDOW_MOVABLE |
+        NK_WINDOW_NO_SCROLLBAR))
+    {
+        refresh = 1;
+
+        nk_layout_row_dynamic(ctx, 10, 2);
+        nk_label(ctx, "Couleur selectionne:", NK_TEXT_RIGHT);
+        struct nk_rect total_space;
+        total_space = nk_widget_bounds(ctx);
+        total_space.w -= ctx->style.window.padding.x * 2;
+        total_space.x += ctx->style.window.padding.x;
+
+        nk_fill_rect(&ctx->current->buffer, total_space, 0, g_current_color);
+    }
+    nk_end(ctx);
+
+    return refresh;
 }
 
 static void
@@ -457,46 +463,14 @@ right_click_panel(struct nk_context* ctx, struct remplissage_gui_bridge * gui_br
 
         printf("current selection %d\n", current_weapon);
         if(current_weapon == 2) {
-            gui_bridge->is_drawing_clip = 1;
+            gui_bridge->is_asking_draw_clip = 1;
             right_panel_showed = 0;
             current_weapon = 0;
         }
-
-
     }
     nk_end(ctx);
 }
 
-static _Bool
-color_shower(struct nk_context* ctx)
-{
-    _Bool refresh = 0;
-
-    static char text[3][64];
-    static int text_len[3];
-    static const char* items[] = { "Item 0","item 1","item 2" };
-    static int selected_item = 0;
-    static int check = 1;
-
-    if (nk_begin(ctx, "Selected color", nk_rect(600, 350, 275, 50),
-        NK_WINDOW_TITLE | NK_WINDOW_BORDER | NK_WINDOW_MOVABLE |
-        NK_WINDOW_NO_SCROLLBAR))
-    {
-        refresh = 1;
-
-        nk_layout_row_dynamic(ctx, 10, 2);
-        nk_label(ctx, "Couleur selectionne:", NK_TEXT_RIGHT);
-        struct nk_rect total_space;
-        total_space = nk_widget_bounds(ctx);
-        total_space.w -= ctx->style.window.padding.x * 2;
-        total_space.x += ctx->style.window.padding.x;
-
-        nk_fill_rect(&ctx->current->buffer, total_space, 0, g_current_color);
-    }
-    nk_end(ctx);
-
-    return refresh;
-}
 
 void text_input(GLFWwindow* win, unsigned int codepoint)
 {

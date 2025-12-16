@@ -21,14 +21,16 @@
 
 
 struct remplissage_gui_bridge {
-    _Bool is_ask_click_canvas;
+    _Bool is_clicked_canvas;
     float x_click_canvas;
     float canvas_width;
     float y_click_canvas;
     float canvas_height;
     _Bool is_ask_change_color;
     unsigned char remplissage_colors[4];
-    _Bool is_drawing_clip;
+    _Bool is_asking_draw_clip;
+    _Bool is_dragging_mouse;
+    _Bool is_mouse_released;
 };
 
 struct media {
