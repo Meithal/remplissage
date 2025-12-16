@@ -305,7 +305,6 @@ int main(int argc, char *argv[])
 #endif
     win = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Demo", NULL, NULL);
     glfwMakeContextCurrent(win);
-    glfwSetWindowUserPointer(win, device.ctx);
     glfwSetCharCallback(win, text_input);
     glfwSetScrollCallback(win, scroll_input);
     glfwGetWindowSize(win, &width, &height);
@@ -322,6 +321,8 @@ int main(int argc, char *argv[])
 
     /* GUI */
     device_main((argc > 1) ? argv[1] : 0, &device);
+
+    glfwSetWindowUserPointer(win, device.ctx);
 
     initPolygon();
     generateTexture();
