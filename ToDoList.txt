@@ -28,3 +28,7 @@ Implémenter Sutherland-hogdmann
 Implémenter LCA
 
 Implémenter les algos pour prendre en compte plusieurs polygones
+
+-------------- Bonus --------------
+
+Marche de Jarvis pour enrouler un nuage de points.
