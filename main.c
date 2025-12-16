@@ -129,8 +129,8 @@ static void drawPolygon() {
     glBindVertexArray(0);
 }
 
-#define texWidth 256
-#define texHeight 256
+#define texWidth 512
+#define texHeight 512
 unsigned char textureData[texWidth * texHeight * 3];
 
 float cross(float w1, float h1, float w2, float h2) {
@@ -157,7 +157,7 @@ float angle(float y1, float x1, float y2, float x2, float pivoty, float pivotx)
     return degrees;
 }
 
-#define LINE_THICKNESS 0.01f // Adjust this value for thicker/thinner edges
+#define LINE_THICKNESS 0.005f // Adjust this value for thicker/thinner edges
 
 // Function to calculate the distance from a point (px, py) to a line segment (x1, y1) -> (x2, y2)
 float point_line_distance(float px, float py, float x1, float y1, float x2, float y2) {

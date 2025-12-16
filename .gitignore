@@ -9,3 +9,4 @@ Nuklear
 sln
 .vscode
 build
+venv*
