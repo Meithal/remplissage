@@ -62,8 +62,8 @@ struct device {
     GLint uniform_proj;
     GLuint font_tex;
     struct media media;
-    struct nk_font_atlas atlas;
-    struct nk_context ctx;
+    struct nk_font_atlas *atlas;
+    struct nk_context *ctx;
     struct nk_font* font;
 };
 

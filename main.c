@@ -305,7 +305,7 @@ int main(int argc, char *argv[])
 #endif
     win = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Demo", NULL, NULL);
     glfwMakeContextCurrent(win);
-    glfwSetWindowUserPointer(win, &device.ctx);
+    glfwSetWindowUserPointer(win, device.ctx);
     glfwSetCharCallback(win, text_input);
     glfwSetScrollCallback(win, scroll_input);
     glfwGetWindowSize(win, &width, &height);
@@ -337,7 +337,7 @@ int main(int argc, char *argv[])
         scale.x = (float)display_width/(float)width;
         scale.y = (float)display_height/(float)height;
 
-        should_generate_texture = device_loop(&device.ctx, win, width, height);
+        should_generate_texture = device_loop(device.ctx, win, width, height);
 
         /* Draw */
         glViewport(0, 0, display_width, display_height);
@@ -353,7 +353,7 @@ int main(int argc, char *argv[])
 
         drawPolygon();
 
-        device_draw(&device, &device.ctx, width, height, scale, NK_ANTI_ALIASING_OFF);
+        device_draw(&device, device.ctx, width, height, scale, NK_ANTI_ALIASING_OFF);
         glfwSwapBuffers(win);
     }
 

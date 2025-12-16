@@ -22,6 +22,8 @@
 static _Bool is_clip_drawing = 0;
 static _Bool right_panel_showed = 0;
 
+struct nk_font_atlas atlas;
+struct nk_context ctx;
 /*
   Convertir coordonnées ecran 0->800 vers opengl -1 -> 1
 */
@@ -44,17 +46,22 @@ void device_main(const char* font_path, struct device * device)
         device_init(device);
         {
             const void* image; int w, h;
-            nk_font_atlas_init_default(&device->atlas);
-            nk_font_atlas_begin(&device->atlas);
-            if (font_path) device->font = nk_font_atlas_add_from_file(&device->atlas, font_path, 13.0f, NULL);
-            else device->font = nk_font_atlas_add_default(&device->atlas, 13.0f, NULL);
-            image = nk_font_atlas_bake(&device->atlas, &w, &h, NK_FONT_ATLAS_RGBA32);
+            device->atlas = &atlas;
+            nk_font_atlas_init_default(device->atlas);
+            nk_font_atlas_begin(device->atlas);
+            if (font_path) {
+                device->font = nk_font_atlas_add_from_file(device->atlas, font_path, 13.0f, NULL);
+            }
+            else {
+                device->font = nk_font_atlas_add_default(device->atlas, 13.0f, NULL);
+            }
+            image = nk_font_atlas_bake(device->atlas, &w, &h, NK_FONT_ATLAS_RGBA32);
             device_upload_atlas(device, image, w, h);
-            nk_font_atlas_end(&device->atlas, nk_handle_id((int)device->font_tex), &device->tex_null);
+            nk_font_atlas_end(device->atlas, nk_handle_id((int)device->font_tex), &device->tex_null);
         }
-        nk_init_default(&device->ctx, &device->font->handle);
+        device->ctx = &ctx;
+        nk_init_default(device->ctx, &device->font->handle);
     }
-
 }
 
 _Bool device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height)
@@ -274,8 +281,8 @@ void
 device_shutdown(struct device* dev)
 {
     glDeleteTextures(1, (const GLuint*)&dev->media.skin);
-    nk_font_atlas_clear(&dev->atlas);
-    nk_free(&dev->ctx);
+    nk_font_atlas_clear(dev->atlas);
+    nk_free(dev->ctx);
 
     glDetachShader(dev->prog, dev->vert_shdr);
     glDetachShader(dev->prog, dev->frag_shdr);

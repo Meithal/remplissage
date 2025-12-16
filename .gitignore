@@ -10,3 +10,4 @@ sln
 .vscode
 build
 venv*
+build_xcode
