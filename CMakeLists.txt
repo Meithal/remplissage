@@ -3,6 +3,11 @@ project(fenetrage_remplissage C)
 
 set(CMAKE_C_STANDARD 11)
 
+if(APPLE)
+    # Target macOS 15 (Sequoia)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "15.6" CACHE STRING "" FORCE)
+endif()
+
 add_executable(fenetrage_remplissage 
         main.c 
         glad/src/glad.c 
@@ -22,7 +27,7 @@ target_include_directories(fenetrage_remplissage PRIVATE glfw/include)
 add_subdirectory(glfw)
 target_link_libraries(fenetrage_remplissage PRIVATE glfw)
 
-#add_subdirectory(glew/build/cmake)
+add_subdirectory(glew/build/cmake)
 
 add_executable(nuk_canvas Nuklear/example/canvas.c)
 target_link_libraries(nuk_canvas PRIVATE glfw glew)
@@ -33,16 +38,16 @@ target_link_libraries(nuk_extended PRIVATE glfw glew)
 target_include_directories(nuk_extended PRIVATE glew/include)
 
 
-#add_executable(nuk_filebrowser Nuklear/example/file_browser.c)
-#target_link_libraries(nuk_filebrowser PRIVATE glfw glew)
-#target_include_directories(nuk_filebrowser PRIVATE glew/include)
+add_executable(nuk_filebrowser Nuklear/example/file_browser.c)
+target_link_libraries(nuk_filebrowser PRIVATE glfw glew)
+target_include_directories(nuk_filebrowser PRIVATE glew/include)
 
 add_executable(nuk_skin Nuklear/example/skinning.c)
 target_link_libraries(nuk_skin PRIVATE glfw glew)
 target_include_directories(nuk_skin PRIVATE glew/include)
 
-set_target_properties(nuk_skin nuk_extended nuk_canvas
-        PROPERTIES RUNTIME_OUTPUT_DIRECTORY bin)
+# set_target_properties(PUBLIC nuk_skin nuk_extended nuk_canvas
+#         PROPERTIES RUNTIME_OUTPUT_DIRECTORY bin)
 
 
 
