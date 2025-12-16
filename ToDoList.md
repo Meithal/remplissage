@@ -1,12 +1,14 @@
 To do List : 
+===
 
--------------- Menu --------------
+Menu
+---
 
 Options : 
-- [ ] Générer/Arrêter de générer un polygone : placer des points d'une couleur choisie et les connecte avec une ligne. Quand on arrête la génération, le premier et dernier point sont connectés.
-- [ ] Choisir une couleur : déjà implémenté
-- [ ] Générer/Arrêter de générer une fenêtre : même comportement que Générer/Arrêter de générer un polygone 
-- [ ] Activer/Désactiver fenêtrage 
+- [x] Générer/Arrêter de générer un polygone : placer des points d'une couleur choisie et les connecte avec une ligne. Quand on arrête la génération, le premier et dernier point sont connectés.
+- [x] Choisir une couleur : déjà implémenté
+- [x] Générer/Arrêter de générer une fenêtre : même comportement que Générer/Arrêter de générer un polygone 
+- [x] Activer/Désactiver fenêtrage 
 - [ ] Mode modification de position de point : cliquer sur l'écran ne génére pas des points mais modifie leur position en les draggant 
 - [ ] Activer/Désactiver remplissage
 
@@ -19,16 +21,19 @@ Texture.cpp/hpp -> définit la texture affiché et ses opération et mises à jo
 Decoupage.cpp/hpp
 Remplissage.cpp/hpp
 
--------------- Découpage --------------
+Découpage
+---
 
 - [ ] Implémenter Sutherland-hogdmann
 
--------------- Remplissage --------------
+Remplissage
+---
 
 - [ ] Implémenter LCA
 - [ ] Implémenter les algos pour prendre en compte plusieurs polygones
 
--------------- Bonus --------------
+Bonus
+---
 
 - [ ] Marche de Jarvis pour enrouler un nuage de points.
 
