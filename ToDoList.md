@@ -60,7 +60,8 @@ Taches
 - [x] Quand on commence a dessiner un polygone, faire apparaitre
 une fenetre pour mettre un terme au tracé.
 - [x] Ne pas modifier l'etat interne des formes qu'on dessine a partir de gui.c
-- [ ] Faire qu'on puisse changer individuellemeent la couleur de chaque polyygone
+- [x] Faire qu'on puisse changer individuellemeent la couleur de chaque polyygone
+- [ ] Mettre l'option de fenetrer soit sutherland-cohen, soit sutherland-hogmann
 
 Taches bonus
 ---

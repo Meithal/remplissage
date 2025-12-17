@@ -190,7 +190,8 @@ float point_line_distance(float px, float py, float x1, float y1, float x2, floa
 }
 
 // Verifie si un point de notre canvas est proche d'un segment
-_Bool is_on_line(float y, float x) {
+// retourne l'id du segment qui est proche, -1 sinon
+int is_on_line(float y, float x) {
     for (int i_shape_index = 0; i_shape_index < g_last_shape ; i_shape_index++) {
         int last = g_shapes[i_shape_index].last_point;
         for(int i = 0; i < last ; i++) {
@@ -208,10 +209,10 @@ _Bool is_on_line(float y, float x) {
             }
             
             if (point_line_distance(x, y, x1, y1, x2, y2) < LINE_THICKNESS)
-                return 1;
+                return i_shape_index;
         }
     }
-    return 0;
+    return -1;
 }
 
 _Bool is_on_clip_line(float y, float x) {
@@ -252,11 +253,13 @@ void generateTexture()
             int index = (y * TEX_WIDTH + x) * 3;
             float normX = norm(x, TEX_WIDTH);
             float normY = -norm(y, TEX_HEIGHT);
+            
+            int shape_id = -1;
 
-            if (is_on_line( normY, normX)) {
-                textureData[index] = g_shapes[g_active_shape].colors[0];
-                textureData[index + 1] = g_shapes[g_active_shape].colors[1];
-                textureData[index + 2] = g_shapes[g_active_shape].colors[2];
+            if ((shape_id = is_on_line( normY, normX)) > -1) {
+                textureData[index] = g_shapes[shape_id].colors[0];
+                textureData[index + 1] = g_shapes[shape_id].colors[1];
+                textureData[index + 2] = g_shapes[shape_id].colors[2];
             }
             else if(is_on_clip_line( normY, normX)) {
                 textureData[index] = g_clips[g_cur_clip].colors[0];
