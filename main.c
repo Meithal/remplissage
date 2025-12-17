@@ -287,13 +287,14 @@ void treatInput(struct remplissage_gui_bridge * gui_bridge)
     /** Logique de dessin du clip */
     if(_is_in_clip_mode) {
         if(gui_bridge->is_clicked_canvas) {
+            gui_bridge->is_clicked_canvas = 0;
             g_clips[g_cur_clip].points[0].y = convert_to_ratio(gui_bridge->y_click_canvas, 0, gui_bridge->canvas_height, -1, 1);
             g_clips[g_cur_clip].points[0].x = convert_to_ratio(gui_bridge->x_click_canvas, 0, gui_bridge->canvas_width, -1, 1);
             g_clips[g_cur_clip].last_point = 1;
             
-            gui_bridge->is_clicked_canvas = 0;
         }
         else if (gui_bridge->is_dragging_mouse) {
+            gui_bridge->is_dragging_mouse = 0;
             g_clips[g_cur_clip].last_point = 4;
             g_clips[g_cur_clip].points[2].y = convert_to_ratio(gui_bridge->y_click_canvas, 0, gui_bridge->canvas_height, -1, 1);
             g_clips[g_cur_clip].points[2].x = convert_to_ratio(gui_bridge->x_click_canvas, 0, gui_bridge->canvas_width, -1, 1);
@@ -302,20 +303,20 @@ void treatInput(struct remplissage_gui_bridge * gui_bridge)
             g_clips[g_cur_clip].points[3].y = g_clips[g_cur_clip].points[2].y;
             g_clips[g_cur_clip].points[3].x = g_clips[g_cur_clip].points[0].x;
             
-            gui_bridge->is_dragging_mouse = 0;
         }
         
         if (gui_bridge->is_mouse_released) {
+            gui_bridge->is_mouse_released = 0;
             g_clips[g_cur_clip].last_point = 0;
             
-            gui_bridge->is_mouse_released = 0;
-            
+
             _is_in_clip_mode = 0;
         }
     }
     /** Logique d'addition de points */
     else {
         if(gui_bridge->is_clicked_canvas) {
+            gui_bridge->is_clicked_canvas = 0;
             int idx = g_shapes[g_active_shape].last_point;
             
             g_shapes[g_active_shape].points[idx].y = convert_to_ratio(gui_bridge->y_click_canvas, 0, gui_bridge->canvas_height, -1, 1);
@@ -323,23 +324,29 @@ void treatInput(struct remplissage_gui_bridge * gui_bridge)
             
             g_shapes[g_active_shape].last_point++;
             
-            gui_bridge->is_clicked_canvas = 0;
+            gui_bridge->is_drawing_shape = 1;
         }
     }
     
+    if(gui_bridge->is_asking_end_draw_shape) {
+        gui_bridge->is_asking_end_draw_shape = 0;
+        gui_bridge->is_drawing_shape = 0;
+        g_last_shape++;
+        g_active_shape = g_last_shape - 1;
+    }
+    
     if(gui_bridge->is_ask_change_color) {
+        gui_bridge->is_ask_change_color = 0;
         g_shapes[g_active_shape].colors[0] = gui_bridge->remplissage_colors[0];
         g_shapes[g_active_shape].colors[1] = gui_bridge->remplissage_colors[1];
         g_shapes[g_active_shape].colors[2] = gui_bridge->remplissage_colors[2];
         g_shapes[g_active_shape].colors[3] = gui_bridge->remplissage_colors[3];
-        
-        gui_bridge->is_ask_change_color = 0;
     }
     
     if(gui_bridge->is_asking_draw_clip) {
+        gui_bridge->is_asking_draw_clip = 0;
         _is_in_clip_mode = 1;
         g_clips[g_cur_clip].last_point = 0;
-        gui_bridge->is_asking_draw_clip = 0;
     }
 
 }

@@ -21,6 +21,10 @@ static _Bool right_panel_showed = 0;
 struct nk_font_atlas atlas;
 struct nk_context ctx;
 
+static void
+end_shape_draw(
+               struct nk_context* ctx, struct remplissage_gui_bridge * gui_bridge, int w_width, int w_height);
+
 /* ===============================================================
  *
  *                          DEVICE
@@ -104,7 +108,6 @@ _Bool device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height
     /* Nos points à nous, càd si on survole pas une frame nuklear */
     if (!nk_window_is_any_hovered(ctx)) {
         
-        
         gui_bridge->x_click_canvas = ctx->input.mouse.pos.x;
         gui_bridge->y_click_canvas = ctx->input.mouse.pos.y;
         gui_bridge->canvas_height = height;
@@ -129,6 +132,10 @@ _Bool device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height
     }
     
     should_redraw |= color_shower(ctx);
+    
+    if(gui_bridge->is_drawing_shape) {
+        end_shape_draw(ctx, gui_bridge, width, height);
+    }
 
     return should_redraw;
 }
@@ -163,6 +170,98 @@ color_shower(struct nk_context* ctx)
     nk_end(ctx);
 
     return refresh;
+}
+
+NK_API struct nk_colorf
+nk_color_picker_did_click(struct nk_context *ctx, struct nk_colorf color,
+    enum nk_color_format fmt, nk_bool * did_click)
+{
+    *did_click = nk_color_pick(ctx, &color, fmt);
+    return color;
+}
+
+
+static void
+right_click_panel(struct nk_context* ctx, struct remplissage_gui_bridge * gui_bridge)
+{
+    /* GUI */
+    if (nk_begin(ctx, "Remplissage", nk_rect(ctx->input.mouse.pos.x, ctx->input.mouse.pos.y, 300, 400),
+        NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE))
+    {
+        int i;
+        float id;
+        static int slider = 10;
+        static int field_len;
+        static nk_size prog_value = 60;
+        static int current_weapon = 0;
+        static char field_buffer[64];
+        static float pos;
+        static const char* weapons[] = {
+                "Couleur",
+                "Polygone à découper",
+                "Tracé fenêtre",
+                "Fenêtrage",
+                "Remplissage" };
+        const float step = (2 * 3.141592654f) / 32;
+
+        nk_layout_row_static(ctx, 30, 120, 1);
+
+        if (nk_button_label(ctx, "Couleur"))
+            fprintf(stdout, "button pressed\n");
+
+        nk_layout_row_dynamic(ctx, 120, 2);
+        nk_label(ctx, "Couleur :", NK_TEXT_LEFT);
+        struct nk_colorf colr = nk_color_cf(g_current_color);
+        nk_bool picked_color;
+        g_current_color = nk_rgb_cf(nk_color_picker_did_click(ctx, nk_color_cf(g_current_color), NK_RGB, &picked_color));
+        gui_bridge->is_ask_change_color = picked_color;
+        if(picked_color) {
+            gui_bridge->remplissage_colors[0] = g_current_color.r;
+            gui_bridge->remplissage_colors[1] = g_current_color.g;
+            gui_bridge->remplissage_colors[2] = g_current_color.b;
+            gui_bridge->remplissage_colors[3] = g_current_color.a;
+        }
+//        g_shapes[g_cur_shape].colors[0] = g_current_color.r;
+//        g_shapes[g_cur_shape].colors[1] = g_current_color.g;
+//        g_shapes[g_cur_shape].colors[2] = g_current_color.b;
+//        g_shapes[g_cur_shape].colors[3] = g_current_color.a;
+
+        nk_layout_row_dynamic(ctx, 25, 1);
+
+        current_weapon = nk_combo(ctx, weapons, LEN(weapons), current_weapon, 25, nk_vec2(nk_widget_width(ctx), 200));
+
+        // printf("current selection %d\n", current_weapon);
+        if(current_weapon == 2) {
+            gui_bridge->is_asking_draw_clip = 1;
+            right_panel_showed = 0;
+            current_weapon = 0;
+        }
+    }
+    nk_end(ctx);
+}
+
+static void
+end_shape_draw(
+    struct nk_context* ctx, struct remplissage_gui_bridge * gui_bridge, int w_width, int w_height)
+{
+    int widget_w = 120;
+    int widget_h = 40;
+    int margin = 10;
+    if(
+       nk_begin(
+        ctx, "Finir tracé",
+        nk_rect(w_width - widget_w - margin, w_height - widget_h - margin, widget_w, widget_h),
+                       NK_WINDOW_BORDER | NK_WINDOW_MOVABLE
+        )
+    ) {
+        nk_layout_row_dynamic(ctx, 20, 1);
+        if(nk_button_label(ctx, "Finir tracé")) {
+            gui_bridge->is_asking_end_draw_shape = 1; // todo: fermer cette fenetre et demarrer un nouveau tracé
+        }
+    }
+    
+    nk_end(ctx);
+    
 }
 
 static void
@@ -411,65 +510,6 @@ device_draw(struct device* dev, struct nk_context* ctx, int width, int height,
     glDisable(GL_SCISSOR_TEST);
 }
 
-
-static void
-right_click_panel(struct nk_context* ctx, struct remplissage_gui_bridge * gui_bridge)
-{
-    /* GUI */
-    if (nk_begin(ctx, "Remplissage", nk_rect(ctx->input.mouse.pos.x, ctx->input.mouse.pos.y, 300, 400),
-        NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE))
-    {
-        int i;
-        float id;
-        static int slider = 10;
-        static int field_len;
-        static nk_size prog_value = 60;
-        static int current_weapon = 0;
-        static char field_buffer[64];
-        static float pos;
-        static const char* weapons[] = {
-                "Couleur",
-                "Polygone à découper",
-                "Tracé fenêtre",
-                "Fenêtrage",
-                "Remplissage" };
-        const float step = (2 * 3.141592654f) / 32;
-
-        nk_layout_row_static(ctx, 30, 120, 1);
-
-        if (nk_button_label(ctx, "Couleur"))
-            fprintf(stdout, "button pressed\n");
-
-        nk_layout_row_dynamic(ctx, 120, 2);
-        nk_label(ctx, "Couleur :", NK_TEXT_LEFT);
-        struct nk_colorf color;
-        nk_bool picked_color = nk_color_pick(ctx, &color, NK_RGB);
-        //g_current_color = nk_rgb_cf(nk_color_picker(ctx, nk_color_cf(g_current_color), NK_RGB));
-        gui_bridge->is_ask_change_color = picked_color;
-        if(picked_color) {
-            gui_bridge->remplissage_colors[0] = color.r;
-            gui_bridge->remplissage_colors[1] = color.g;
-            gui_bridge->remplissage_colors[2] = color.b;
-            gui_bridge->remplissage_colors[3] = color.a;
-        }
-//        g_shapes[g_cur_shape].colors[0] = g_current_color.r;
-//        g_shapes[g_cur_shape].colors[1] = g_current_color.g;
-//        g_shapes[g_cur_shape].colors[2] = g_current_color.b;
-//        g_shapes[g_cur_shape].colors[3] = g_current_color.a;
-
-        nk_layout_row_dynamic(ctx, 25, 1);
-
-        current_weapon = nk_combo(ctx, weapons, LEN(weapons), current_weapon, 25, nk_vec2(nk_widget_width(ctx), 200));
-
-        printf("current selection %d\n", current_weapon);
-        if(current_weapon == 2) {
-            gui_bridge->is_asking_draw_clip = 1;
-            right_panel_showed = 0;
-            current_weapon = 0;
-        }
-    }
-    nk_end(ctx);
-}
 
 
 void text_input(GLFWwindow* win, unsigned int codepoint)

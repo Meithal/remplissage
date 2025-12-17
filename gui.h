@@ -31,6 +31,8 @@ struct remplissage_gui_bridge {
     _Bool is_asking_draw_clip;
     _Bool is_dragging_mouse;
     _Bool is_mouse_released;
+    _Bool is_drawing_shape;
+    _Bool is_asking_end_draw_shape;
 };
 
 struct media {
