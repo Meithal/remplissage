@@ -65,6 +65,8 @@ une fenetre pour mettre un terme au tracé.
 - [ ] Faire que le découpage Cohen marche dans les deux sens
 - [x] Afficher sur l'UI la shape en cours.
 - [x] Pouvoir modifier la shape en cours.
+- [ ] Tester Sutherland Cohen en utilisant une texture masque et en appliquant
+une soustraction dessous. Ca devrait pouvoir faire l'économie d'utiliser des layers.
 
 Taches bonus
 ---

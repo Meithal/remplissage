@@ -23,7 +23,7 @@ struct clip g_clips[RM_MAX_SHAPES] = {
     }
 };
 
-int g_cur_clip = 0;
+int g_cur_clip = 0; // on ne gere qu'un seul clip pour l'instant
 
 float norm(int pixel, int width) {
     return (float)pixel / width * 2 - 1;
