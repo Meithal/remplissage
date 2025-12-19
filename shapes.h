@@ -18,8 +18,10 @@ g_last_shape;
 extern int
 g_active_shape;
 
-extern struct shape
-g_clips[RM_MAX_SHAPES];
+extern struct clip {
+    struct shape shape;
+    enum {CLIP_SUTHERLAND_COHEN, CLIP_SUTHERLAND_HOGMAN} type;
+} g_clips[RM_MAX_SHAPES];
 
 extern int
 g_cur_clip;

@@ -21,18 +21,23 @@
 
 
 struct remplissage_gui_bridge {
+    // gui -> coeur
     _Bool is_clicked_canvas;
     float x_click_canvas;
     float canvas_width;
     float y_click_canvas;
     float canvas_height;
     _Bool is_ask_change_color;
-    unsigned char remplissage_colors[4];
+    unsigned char remplissage_colors[4]; // couleur selectionnee dans le color picker
     _Bool is_asking_draw_clip;
+    _Bool is_asking_stop_draw_clip;
     _Bool is_dragging_mouse;
     _Bool is_mouse_released;
     _Bool is_drawing_shape;
     _Bool is_asking_end_draw_shape;
+    // coeur -> gui
+    int current_selected_shape; // valeur de g_current_shape
+    int last_shape;
 };
 
 struct media {
@@ -90,8 +95,9 @@ static
 _Bool
 color_shower(struct nk_context* ctx);
 
+[[nodiscard("important")]]
 static
-void
+_Bool
 right_click_panel(struct nk_context*, struct remplissage_gui_bridge*);
 
 static

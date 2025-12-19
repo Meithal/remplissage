@@ -36,6 +36,7 @@ static OutCode ComputeOutCode(float x, float y, float xmin, float xmax, float ym
 // Cohen–Sutherland clipping algorithm clips a line from
 // P0 = (x0, y0) to P1 = (x1, y1) against a rectangle with
 // diagonal from (xmin, ymin) to (xmax, ymax).
+// Todo: fenetre direction opposée
 _Bool CohenSutherlandLineClip(
         float *x0, float *y0, float *x1, float *y1, float ymax, float ymin, float xmax, float xmin) {
     // compute outcodes for P0, P1, and whatever point lies outside the clip rectangle
@@ -96,3 +97,10 @@ _Bool CohenSutherlandLineClip(
     }
     return accept;
 }
+
+_Bool SutherlandHogmanLineClip(
+        float *x0, float *y0, float *x1, float *y1, float ymax, float ymin, float xmax, float xmin) {
+    
+    return 1;
+}
+

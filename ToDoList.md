@@ -62,12 +62,18 @@ une fenetre pour mettre un terme au tracé.
 - [x] Ne pas modifier l'etat interne des formes qu'on dessine a partir de gui.c
 - [x] Faire qu'on puisse changer individuellemeent la couleur de chaque polyygone
 - [ ] Mettre l'option de fenetrer soit sutherland-cohen, soit sutherland-hogmann
+- [ ] Faire que le découpage Cohen marche dans les deux sens
+- [x] Afficher sur l'UI la shape en cours.
+- [x] Pouvoir modifier la shape en cours.
 
 Taches bonus
 ---
 
 - [ ] Pouvoir cliquer sur un polygone pour en résumer le tracé.
-- [ ] Tester apres avoir résumé un tracé qu'on puisse en tracer
+- [x] Tester apres avoir résumé un tracé qu'on puisse en tracer
 un nouveau.
 - [ ] Pouvoir modifier individuellement l'épaisseur du trait
 de chaque polygone.
+- [ ] Migrer toute la logique de clic et drag hors de GUI et utiliser
+fonctions GLFW natives.
+- [ ] Pouvoir déplacer les vertices individuellement.

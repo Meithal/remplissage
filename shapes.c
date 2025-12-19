@@ -12,13 +12,15 @@ struct shape g_shapes[RM_MAX_SHAPES] = {
 int g_active_shape = 0;
 int g_last_shape = 1; // borne superieure exclusive des shapes qu'on doit dessiner
 
-struct shape g_clips[RM_MAX_SHAPES] = {
+struct clip g_clips[RM_MAX_SHAPES] = {
+    {
         {
-                .colors = {8, 128 , 108, 255},
-                .remplissage_colors = {255, 255, 255, 255},
-                .last_point = 0,
-                .points = {}
+            .colors = {8, 128 , 108, 255},
+            .remplissage_colors = {255, 255, 255, 255},
+            .last_point = 0,
+            .points = {0}
         }
+    }
 };
 
 int g_cur_clip = 0;

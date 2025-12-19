@@ -22,7 +22,7 @@ struct nk_font_atlas atlas;
 struct nk_context ctx;
 
 static void
-end_shape_draw(
+popup_end_shape_draw(
                struct nk_context* ctx, struct remplissage_gui_bridge * gui_bridge, int w_width, int w_height);
 
 /* ===============================================================
@@ -97,12 +97,13 @@ _Bool device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height
         nk_input_end(ctx);
     }
 
+    /// tout cela peut etre fait via GLFW, pas besoin de tout ce code a priori
     if (nk_input_is_mouse_released(&ctx->input, NK_BUTTON_RIGHT)) {
         right_panel_showed = !right_panel_showed;
     }
 
     if (right_panel_showed) {
-        right_click_panel(ctx, gui_bridge);
+        should_redraw = right_click_panel(ctx, gui_bridge);
     }
 
     /* Nos points à nous, càd si on survole pas une frame nuklear */
@@ -123,18 +124,18 @@ _Bool device_loop(struct nk_context *ctx, GLFWwindow* win, int width, int height
             should_redraw = 1;
         }
         
-        if (nk_input_is_mouse_released(&ctx->input, NK_BUTTON_RIGHT)) {
+        if (nk_input_is_mouse_released(&ctx->input, NK_BUTTON_LEFT)) {
             gui_bridge->is_mouse_released = 1;
             should_redraw = 1;
         }
     } else {
-        should_redraw = 0;
+        // should_redraw = 0;
     }
     
-    should_redraw |= color_shower(ctx);
+    //should_redraw |= color_shower(ctx);
     
     if(gui_bridge->is_drawing_shape) {
-        end_shape_draw(ctx, gui_bridge, width, height);
+        popup_end_shape_draw(ctx, gui_bridge, width, height);
     }
 
     return should_redraw;
@@ -181,9 +182,10 @@ nk_color_picker_did_click(struct nk_context *ctx, struct nk_colorf color,
 }
 
 
-static void
+static _Bool
 right_click_panel(struct nk_context* ctx, struct remplissage_gui_bridge * gui_bridge)
 {
+    _Bool should_redraw = 0;
     /* GUI */
     if (nk_begin(ctx, "Remplissage", nk_rect(ctx->input.mouse.pos.x, ctx->input.mouse.pos.y, 300, 400),
         NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE))
@@ -204,11 +206,6 @@ right_click_panel(struct nk_context* ctx, struct remplissage_gui_bridge * gui_br
                 "Remplissage" };
         const float step = (2 * 3.141592654f) / 32;
 
-        nk_layout_row_static(ctx, 30, 120, 1);
-
-        if (nk_button_label(ctx, "Couleur"))
-            fprintf(stdout, "button pressed\n");
-
         nk_layout_row_dynamic(ctx, 120, 2);
         nk_label(ctx, "Couleur :", NK_TEXT_LEFT);
         struct nk_colorf colr = nk_color_cf(g_current_color);
@@ -220,6 +217,8 @@ right_click_panel(struct nk_context* ctx, struct remplissage_gui_bridge * gui_br
             gui_bridge->remplissage_colors[1] = g_current_color.g;
             gui_bridge->remplissage_colors[2] = g_current_color.b;
             gui_bridge->remplissage_colors[3] = g_current_color.a;
+            
+            should_redraw = 1;
         }
 //        g_shapes[g_cur_shape].colors[0] = g_current_color.r;
 //        g_shapes[g_cur_shape].colors[1] = g_current_color.g;
@@ -227,24 +226,44 @@ right_click_panel(struct nk_context* ctx, struct remplissage_gui_bridge * gui_br
 //        g_shapes[g_cur_shape].colors[3] = g_current_color.a;
 
         nk_layout_row_dynamic(ctx, 25, 1);
+        const char * shape_names [] = {
+            "1", "2", "3", "4", "5", "6", "7", "8", "9"
+        };
+        char shape_text[256];
+        snprintf(shape_text, 256, "Active shape : %s", shape_names[gui_bridge->current_selected_shape]);
+        nk_label(ctx, shape_text, NK_TEXT_ALIGN_LEFT);
+        
+        nk_layout_row_dynamic(ctx, 25, 1);
+        gui_bridge->current_selected_shape = nk_combo(ctx, shape_names, gui_bridge->last_shape, gui_bridge->current_selected_shape, 25, nk_vec2(nk_widget_width(ctx), 200));
+        
+        nk_layout_row_dynamic(ctx, 25, 1);
 
         current_weapon = nk_combo(ctx, weapons, LEN(weapons), current_weapon, 25, nk_vec2(nk_widget_width(ctx), 200));
 
         // printf("current selection %d\n", current_weapon);
+        if(current_weapon == 0) {
+            gui_bridge->is_asking_stop_draw_clip = 1;
+            should_redraw = 1;
+            //right_panel_showed = 0;
+            current_weapon = 0;
+        }
         if(current_weapon == 2) {
             gui_bridge->is_asking_draw_clip = 1;
+            should_redraw = 1;
             right_panel_showed = 0;
             current_weapon = 0;
         }
     }
     nk_end(ctx);
+    
+    return should_redraw;
 }
 
 static void
-end_shape_draw(
+popup_end_shape_draw(
     struct nk_context* ctx, struct remplissage_gui_bridge * gui_bridge, int w_width, int w_height)
 {
-    int widget_w = 120;
+    int widget_w = 110;
     int widget_h = 40;
     int margin = 10;
     if(
@@ -254,7 +273,7 @@ end_shape_draw(
                        NK_WINDOW_BORDER | NK_WINDOW_MOVABLE
         )
     ) {
-        nk_layout_row_dynamic(ctx, 20, 1);
+        nk_layout_row_dynamic(ctx, 17, 1);
         if(nk_button_label(ctx, "Finir tracé")) {
             gui_bridge->is_asking_end_draw_shape = 1; // todo: fermer cette fenetre et demarrer un nouveau tracé
         }

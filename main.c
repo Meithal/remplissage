@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
+#include <assert.h>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -21,6 +22,7 @@ _Bool should_generate_texture = 1;
 
 static
 _Bool _is_in_clip_mode = 0;
+static _Bool _want_draw_clip = 0;
 
 /* Forme Lesly */
 
@@ -48,6 +50,7 @@ const char* fragmentShaderSource = "#version 330 core\n"
 "  FragColor = vec4(vec3(color), 1.0);\n"
 "}\0";
  */
+
 const char* fragmentShaderSource =
         "#version 330 core\n"
        "in vec2 TexCoord;\n"
@@ -189,23 +192,37 @@ float point_line_distance(float px, float py, float x1, float y1, float x2, floa
     return sqrtf(dx * dx + dy * dy);
 }
 
-// Verifie si un point de notre canvas est proche d'un segment
-// retourne l'id du segment qui est proche, -1 sinon
+// Retourne le shape duquel un segment notre pixel est proche, -1 sinon
 int is_on_line(float y, float x) {
     for (int i_shape_index = 0; i_shape_index < g_last_shape ; i_shape_index++) {
         int last = g_shapes[i_shape_index].last_point;
         for(int i = 0; i < last ; i++) {
+            // sommets segment considéré
             float y1 = g_shapes[i_shape_index].points[i].y;
             float x1 = g_shapes[i_shape_index].points[i].x;
             float y2 = g_shapes[i_shape_index].points[(i + 1) % last].y;
             float x2 = g_shapes[i_shape_index].points[(i + 1) % last].x;
             
-            if(g_clips[g_cur_clip].last_point > 0) {
-                if(!CohenSutherlandLineClip(
-                                            &x1, &y1, &x2, &y2,
-                                            g_clips[g_cur_clip].points[2].y, g_clips[g_cur_clip].points[0].y,
-                                            g_clips[g_cur_clip].points[2].x, g_clips[g_cur_clip].points[0].x))
-                    continue;
+            struct clip cur_clip = g_clips[g_cur_clip];
+            if(cur_clip.shape.last_point > 0) {
+                switch (cur_clip.type) {
+                    case CLIP_SUTHERLAND_COHEN:
+                        if(!CohenSutherlandLineClip(
+                                                    &x1, &y1, &x2, &y2,
+                                                    cur_clip.shape.points[2].y, cur_clip.shape.points[0].y,
+                                                    cur_clip.shape.points[2].x, cur_clip.shape.points[0].x))
+                            continue;
+                        break;
+                    case CLIP_SUTHERLAND_HOGMAN:
+                        if(!SutherlandHogmanLineClip(
+                                                    &x1, &y1, &x2, &y2,
+                                                     cur_clip.shape.points[2].y, cur_clip.shape.points[0].y,
+                                                     cur_clip.shape.points[2].x, cur_clip.shape.points[0].x))
+                            continue;
+                        break;
+                    default:
+                        break;
+                }
             }
             
             if (point_line_distance(x, y, x1, y1, x2, y2) < LINE_THICKNESS)
@@ -216,12 +233,12 @@ int is_on_line(float y, float x) {
 }
 
 _Bool is_on_clip_line(float y, float x) {
-    int last = g_clips[g_cur_clip].last_point;
+    int last = g_clips[g_cur_clip].shape.last_point;
     for(int i = 0; i < last ; i++) {
-        float y1 = g_clips[g_cur_clip].points[i].y;
-        float x1 = g_clips[g_cur_clip].points[i].x;
-        float y2 = g_clips[g_cur_clip].points[(i + 1) % last].y;
-        float x2 = g_clips[g_cur_clip].points[(i + 1) % last].x;
+        float y1 = g_clips[g_cur_clip].shape.points[i].y;
+        float x1 = g_clips[g_cur_clip].shape.points[i].x;
+        float y2 = g_clips[g_cur_clip].shape.points[(i + 1) % last].y;
+        float x2 = g_clips[g_cur_clip].shape.points[(i + 1) % last].x;
 
         if (point_line_distance(x, y, x1, y1, x2, y2) < LINE_THICKNESS)
             return 1;
@@ -257,14 +274,15 @@ void generateTexture()
             int shape_id = -1;
 
             if ((shape_id = is_on_line( normY, normX)) > -1) {
+                assert(shape_id >=0 && shape_id < g_last_shape);
                 textureData[index] = g_shapes[shape_id].colors[0];
                 textureData[index + 1] = g_shapes[shape_id].colors[1];
                 textureData[index + 2] = g_shapes[shape_id].colors[2];
             }
             else if(is_on_clip_line( normY, normX)) {
-                textureData[index] = g_clips[g_cur_clip].colors[0];
-                textureData[index + 1] = g_clips[g_cur_clip].colors[1];
-                textureData[index + 2] = g_clips[g_cur_clip].colors[2];
+                textureData[index] = g_clips[g_cur_clip].shape.colors[0];
+                textureData[index + 1] = g_clips[g_cur_clip].shape.colors[1];
+                textureData[index + 2] = g_clips[g_cur_clip].shape.colors[2];
             }
             else {
                 textureData[index] = 255;
@@ -287,30 +305,39 @@ void loadTexture() {
 
 void treatInput(struct remplissage_gui_bridge * gui_bridge)
 {
+    /// L'utilisateur a demandé a changer de shape
+    
+    if(gui_bridge->current_selected_shape != g_active_shape)
+        g_active_shape = gui_bridge->current_selected_shape;
     /** Logique de dessin du clip */
-    if(_is_in_clip_mode) {
+    if(_want_draw_clip) {
         if(gui_bridge->is_clicked_canvas) {
             gui_bridge->is_clicked_canvas = 0;
-            g_clips[g_cur_clip].points[0].y = convert_to_ratio(gui_bridge->y_click_canvas, 0, gui_bridge->canvas_height, -1, 1);
-            g_clips[g_cur_clip].points[0].x = convert_to_ratio(gui_bridge->x_click_canvas, 0, gui_bridge->canvas_width, -1, 1);
-            g_clips[g_cur_clip].last_point = 1;
             
+            _is_in_clip_mode = 1;
+            
+            gui_bridge->is_clicked_canvas = 0;
+            g_clips[g_cur_clip].shape.points[0].y = convert_to_ratio(gui_bridge->y_click_canvas, 0, gui_bridge->canvas_height, -1, 1);
+            g_clips[g_cur_clip].shape.points[0].x = convert_to_ratio(gui_bridge->x_click_canvas, 0, gui_bridge->canvas_width, -1, 1);
+            g_clips[g_cur_clip].shape.last_point = 1;
         }
         else if (gui_bridge->is_dragging_mouse) {
             gui_bridge->is_dragging_mouse = 0;
-            g_clips[g_cur_clip].last_point = 4;
-            g_clips[g_cur_clip].points[2].y = convert_to_ratio(gui_bridge->y_click_canvas, 0, gui_bridge->canvas_height, -1, 1);
-            g_clips[g_cur_clip].points[2].x = convert_to_ratio(gui_bridge->x_click_canvas, 0, gui_bridge->canvas_width, -1, 1);
-            g_clips[g_cur_clip].points[1].y = g_clips[g_cur_clip].points[0].y;
-            g_clips[g_cur_clip].points[1].x = g_clips[g_cur_clip].points[2].x;
-            g_clips[g_cur_clip].points[3].y = g_clips[g_cur_clip].points[2].y;
-            g_clips[g_cur_clip].points[3].x = g_clips[g_cur_clip].points[0].x;
+            
+            g_clips[g_cur_clip].shape.last_point = 4;
+            g_clips[g_cur_clip].shape.points[2].y = convert_to_ratio(gui_bridge->y_click_canvas, 0, gui_bridge->canvas_height, -1, 1);
+            g_clips[g_cur_clip].shape.points[2].x = convert_to_ratio(gui_bridge->x_click_canvas, 0, gui_bridge->canvas_width, -1, 1);
+            g_clips[g_cur_clip].shape.points[1].y = g_clips[g_cur_clip].shape.points[0].y;
+            g_clips[g_cur_clip].shape.points[1].x = g_clips[g_cur_clip].shape.points[2].x;
+            g_clips[g_cur_clip].shape.points[3].y = g_clips[g_cur_clip].shape.points[2].y;
+            g_clips[g_cur_clip].shape.points[3].x = g_clips[g_cur_clip].shape.points[0].x;
             
         }
         
         if (gui_bridge->is_mouse_released) {
             gui_bridge->is_mouse_released = 0;
-            g_clips[g_cur_clip].last_point = 0;
+            
+            g_clips[g_cur_clip].shape.last_point = 0;
             
 
             _is_in_clip_mode = 0;
@@ -328,13 +355,19 @@ void treatInput(struct remplissage_gui_bridge * gui_bridge)
             g_shapes[g_active_shape].last_point++;
             
             gui_bridge->is_drawing_shape = 1;
+            
+            fprintf(stderr, "active shape : %d, max shapes : %d\n", g_active_shape, g_last_shape);
         }
     }
     
     if(gui_bridge->is_asking_end_draw_shape) {
         gui_bridge->is_asking_end_draw_shape = 0;
         gui_bridge->is_drawing_shape = 0;
-        g_last_shape++;
+        if(g_shapes[g_last_shape - 1].last_point > 0)
+            // si on a ajouté au moins un point à la derniere shape
+            // càd on a pas cherché a dessiner un clip ou modifier une autre shape
+            // juste apres avoir fini de tracer une shape
+            g_last_shape++;
         g_active_shape = g_last_shape - 1;
     }
     
@@ -348,10 +381,14 @@ void treatInput(struct remplissage_gui_bridge * gui_bridge)
     
     if(gui_bridge->is_asking_draw_clip) {
         gui_bridge->is_asking_draw_clip = 0;
-        _is_in_clip_mode = 1;
-        g_clips[g_cur_clip].last_point = 0;
+        _want_draw_clip = 1;
+        g_clips[g_cur_clip].shape.last_point = 0;
     }
-
+    if(gui_bridge->is_asking_stop_draw_clip) {
+        gui_bridge->is_asking_stop_draw_clip = 0;
+        _want_draw_clip = 0;
+        g_clips[g_cur_clip].shape.last_point = 0;
+    }
 }
 
 /* glfw callbacks (I don't know if there is a easier way to access text and scroll )*/
@@ -415,12 +452,12 @@ int main(int argc, char *argv[])
     while (!glfwWindowShouldClose(win))
     {
         /* High DPI displays */
-        struct nk_vec2 scale;
         glfwGetWindowSize(win, &width, &height);
         glfwGetFramebufferSize(win, &display_width, &display_height);
-        scale.x = (float)display_width/(float)width;
-        scale.y = (float)display_height/(float)height;
 
+        gui_bridge.current_selected_shape = g_active_shape;
+        gui_bridge.last_shape = g_last_shape;
+        
         should_generate_texture = device_loop(device.ctx, win, width, height, &gui_bridge);
 
         /* Draw */
@@ -428,8 +465,9 @@ int main(int argc, char *argv[])
         glClear(GL_COLOR_BUFFER_BIT);
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+        treatInput(&gui_bridge);
+
         if(should_generate_texture) {
-            treatInput(&gui_bridge);
             generateTexture();
             loadTexture();
 
@@ -437,6 +475,11 @@ int main(int argc, char *argv[])
         }
 
         drawPolygon();
+        
+        struct nk_vec2 scale;
+
+        scale.x = (float)display_width/(float)width;
+        scale.y = (float)display_height/(float)height;
 
         device_draw(&device, device.ctx, width, height, scale, NK_ANTI_ALIASING_OFF);
         glfwSwapBuffers(win);
