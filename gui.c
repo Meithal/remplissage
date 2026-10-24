@@ -225,7 +225,7 @@ right_click_panel(struct nk_context* ctx, struct remplissage_gui_bridge * gui_br
 //        g_shapes[g_cur_shape].colors[2] = g_current_color.b;
 //        g_shapes[g_cur_shape].colors[3] = g_current_color.a;
 
-        nk_layout_row_dynamic(ctx, 25, 1);
+        nk_layout_row_dynamic(ctx, 25, 2);
         const char * shape_names [] = {
             "1", "2", "3", "4", "5", "6", "7", "8", "9"
         };
@@ -233,7 +233,6 @@ right_click_panel(struct nk_context* ctx, struct remplissage_gui_bridge * gui_br
         snprintf(shape_text, 256, "Active shape : %s", shape_names[gui_bridge->current_selected_shape]);
         nk_label(ctx, shape_text, NK_TEXT_ALIGN_LEFT);
         
-        nk_layout_row_dynamic(ctx, 25, 1);
         gui_bridge->current_selected_shape = nk_combo(ctx, shape_names, gui_bridge->last_shape, gui_bridge->current_selected_shape, 25, nk_vec2(nk_widget_width(ctx), 200));
         
         nk_layout_row_dynamic(ctx, 25, 1);

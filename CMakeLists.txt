@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(fenetrage_remplissage C)
 
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 23)
 
 if(APPLE)
     # Target macOS 15 (Sequoia)
@@ -19,7 +19,12 @@ add_executable(fenetrage_remplissage
         decoupage.h
         remplissage.c
         remplissage.h
+        hashmap.h
+        hashmap.c
 )
+
+target_sources(fenetrage_remplissage PRIVATE shaders/applat_texture.glsl)
+target_sources(fenetrage_remplissage PRIVATE ToDoList.md)
 
 target_include_directories(fenetrage_remplissage PRIVATE glad/include)
 target_include_directories(fenetrage_remplissage PRIVATE glfw/include)

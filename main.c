@@ -120,7 +120,7 @@ static void initPolygon() {
 
 GLuint texture;
 
-static void drawPolygon() {
+static void drawCanvas() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
 
@@ -474,7 +474,7 @@ int main(int argc, char *argv[])
             should_generate_texture = 0;
         }
 
-        drawPolygon();
+        drawCanvas();
         
         struct nk_vec2 scale;
 
