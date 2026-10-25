@@ -26,6 +26,24 @@ add_executable(fenetrage_remplissage
 target_sources(fenetrage_remplissage PRIVATE shaders/applat_texture.glsl)
 target_sources(fenetrage_remplissage PRIVATE ToDoList.md)
 
+# charge les shaders avec notre programme
+#file(GLOB shader_files "${CMAKE_SOURCE_DIR}/shaders/*")
+#add_custom_command(
+#    OUTPUT "$<TARGET_FILE_DIR:fenetrage_remplissage>/shaders"
+#    DEPENDS ${shader_files}
+#    COMMENT recopie les shaders
+#    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:fenetrage_remplissage>/shaders"
+#    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${shader_files} "$<TARGET_FILE_DIR:fenetrage_remplissage>/shaders"
+#)
+#add_custom_target(copy_shaders ALL DEPENDS "$<TARGET_FILE_DIR:fenetrage_remplissage>/shaders")
+#ADD_DEPENDENCIES ( fenetrage_remplissage copy_shaders)
+add_custom_command(
+         TARGET fenetrage_remplissage POST_BUILD
+         COMMAND ${CMAKE_COMMAND} -E copy_directory
+             ${CMAKE_SOURCE_DIR}/shaders $<TARGET_FILE_DIR:fenetrage_remplissage>/shaders
+         COMMENT "Copying shaders" VERBATIM
+         )
+
 target_include_directories(fenetrage_remplissage PRIVATE glad/include)
 target_include_directories(fenetrage_remplissage PRIVATE glfw/include)
 

@@ -1,12 +1,18 @@
 
 struct yt_hashmap {
-    struct { int32_t complete_key; void*the_thing;} bucket[256];
+    struct {
+        union yt_key {
+            struct {uint32_t djb2; uint32_t sdbm;} str;
+            uint64_t tot;
+        } complete_key;
+        void*the_thing;
+    } bucket[256];
 };
 
 /// calcule le hash d'une chaine de caracteres sur 32 bits, les 2 bits de poids fort ne peuvent jamais etre touchés
 /// car on s'en sert pour detecter les hash supprimmés
-int32_t compute_hash(char* key);
+union yt_key hash_compute(char* key);
 
-int add_object(uint32_t key, void * thing, struct yt_hashmap* map);
-int get_object(uint32_t key, void ** thing, struct yt_hashmap* map);
-int delete_object(uint32_t key, struct yt_hashmap*map);
+int hash_add(union yt_key key, void * thing, struct yt_hashmap* map);
+int hash_get(union yt_key key, void ** thing, struct yt_hashmap* map);
+int hash_delete(union yt_key key, struct yt_hashmap*map);

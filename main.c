@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <math.h>
 #include <assert.h>
+#include <string.h>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -16,6 +17,7 @@
 #include "shapes.h"
 #include "decoupage.h"
 #include "remplissage.h"
+#include "hashmap.h"
 
 static
 _Bool should_generate_texture = 1;
@@ -26,16 +28,6 @@ static _Bool _want_draw_clip = 0;
 
 /* Forme Lesly */
 
-
-const char* vertexShaderSource = "#version 330 core\n"
-"layout (location = 0) in vec2 aPos;\n"
-"layout (location = 1) in vec2 aTexCoord;\n"
-"out vec2 TexCoord;\n"
-"void main()\n"
-"{\n"
-"  TexCoord = aTexCoord;\n"
-"  gl_Position = vec4(aPos, 0.0, 1.0);\n"
-"}\0";
 
 /* // damier
 const char* fragmentShaderSource = "#version 330 core\n"
@@ -51,24 +43,28 @@ const char* fragmentShaderSource = "#version 330 core\n"
 "}\0";
  */
 
-const char* fragmentShaderSource =
-        "#version 330 core\n"
-       "in vec2 TexCoord;\n"
-       "out vec4 FragColor;\n"
-       "uniform sampler2D texture1;\n"
-       "void main()\n"
-       "{\n"
-       "  FragColor = texture(texture1, TexCoord);\n"
-       "}\0";
-
+void CheckErrorOGL()
+{
+    GLenum error;
+    switch(error=glGetError()) {
+        case GL_NO_ERROR : break;
+        case GL_INVALID_ENUM: printf("%d GL_INVALID_ENUM", GL_INVALID_ENUM); break;
+        case GL_INVALID_VALUE: printf("%d GL_INVALID_VALUE", GL_INVALID_VALUE); break;
+        case GL_INVALID_OPERATION: printf("%d GL_INVALID_OPERATION", GL_INVALID_VALUE); break;
+        case GL_STACK_OVERFLOW: printf("%d GL_STACK_OVERFLOW", GL_INVALID_VALUE); break;
+        case GL_STACK_UNDERFLOW: printf("%d GL_STACK_UNDERFLOW", GL_INVALID_VALUE); break;
+        case GL_OUT_OF_MEMORY: printf("%d GL_OUT_OF_MEMORY", GL_INVALID_VALUE); break;
+        case GL_TABLE_TOO_LARGE: printf("%d GL_TABLE_TOO_LARGE", GL_INVALID_VALUE); break;
+    }
+}
 
 unsigned int VBO, VAO, EBO, shaderProgram;
 
 static float quad_vertices[] = {
-        -1.0f, -1.0f,0.0f, 0.0f, // Bas gauche
-        1.0f, -1.0f,1.0f, 0.0f, // Bas droit
-        -1.0f, 1.0f,0.0f, 1.0f, // Haut gauche
-        1.0f, 1.0f, 1.0f, 1.0f // Haut droit
+        -1.0f, -1.0f, 0.0f, 0.0f, // Bas gauche
+         1.0f, -1.0f, 1.0f, 0.0f, // Bas droit
+        -1.0f,  1.0f, 0.0f, 1.0f, // Haut gauche
+         1.0f,  1.0f, 1.0f, 1.0f // Haut droit
 };
 
 unsigned int indices[] = {
@@ -76,7 +72,9 @@ unsigned int indices[] = {
         1, 3, 2
 };
 
-static void initPolygon() {
+static void initPolygon(const GLchar*vertex_source, const GLchar*fragment_source) {
+    GLenum glError;
+    
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
@@ -102,17 +100,41 @@ static void initPolygon() {
     glBindVertexArray(0);
 
     unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    
+    glShaderSource(vertexShader, 1, &vertex_source, NULL);
+    glError = glGetError();
+    CheckErrorOGL();
     glCompileShader(vertexShader);
+    CheckErrorOGL();
+    int len, written;
+    glGetShaderiv(vertexShader, GL_INFO_LOG_LENGTH, &len);
+    GLchar * vert_shader_info_log = malloc(len);
+    glGetShaderInfoLog(vertexShader, len, &written, vert_shader_info_log);
+    puts(vert_shader_info_log);
+    free(vert_shader_info_log);
 
     unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    glShaderSource(fragmentShader, 1, &fragment_source, NULL);
+    CheckErrorOGL();
     glCompileShader(fragmentShader);
+    CheckErrorOGL();
+    glGetShaderiv(fragmentShader, GL_INFO_LOG_LENGTH, &len);
+    GLchar * frag_shader_info_log = malloc(len);
+    glGetShaderInfoLog(fragmentShader, len, &written, frag_shader_info_log);
+    puts(frag_shader_info_log);
+    free(frag_shader_info_log);
 
     shaderProgram = glCreateProgram();
+    
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
+    
+    GLboolean is_prog = glIsProgram(shaderProgram);
+    glGetProgramiv(shaderProgram, GL_INFO_LOG_LENGTH, &len);
+    GLchar *info_log = malloc(len);
+    glGetProgramInfoLog(shaderProgram, len, &written, info_log);
+    free(info_log);
 
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
@@ -125,6 +147,7 @@ static void drawCanvas() {
     glBindTexture(GL_TEXTURE_2D, texture);
 
     glUseProgram(shaderProgram);
+    CheckErrorOGL();
     glUniform1i(glGetUniformLocation(shaderProgram, "texture1"), 0);
 
     glBindVertexArray(VAO);
@@ -303,6 +326,47 @@ void loadTexture() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
+/// lit un fichier de shaders et les charge dans une hashmap
+int charge_fichiers_shader(char*path, struct yt_hashmap*map_shaders)
+{
+    long size =0;
+    char* shader_file;
+    
+    FILE*fp;
+    if(!(fp = fopen(path, "rb"))) {
+        perror(path);
+        return -1;
+    }
+    fseek(fp, 0, SEEK_END);
+    size = ftell(fp);
+    rewind(fp);
+    shader_file = malloc(size + 1);
+    fread(shader_file, 1, size, fp);
+    shader_file[size] = '\0';
+    hash_add(hash_compute("origin"), shader_file, map_shaders);
+    
+    char ligne[256];
+    int off =0, read=0, ok=0;
+    while((ok=sscanf(shader_file+off, "%255[^\n]\n%n", ligne, &read)) >= 0) {
+        char nom[256];
+        if(strncmp(ligne, "/// VERTEX", sizeof("/// VERTEX") - 1) == 0) {
+            strcpy(nom, "vertex_");
+            sscanf(ligne, "/// VERTEX %s", nom + sizeof("vertex_") - 1);
+        } else if(strncmp(ligne, "/// FRAGMENT", sizeof("/// FRAGMENT") - 1) == 0) {
+            strcpy(nom, "fragment_");
+            sscanf(ligne, "/// FRAGMENT %s", nom + sizeof("fragment_") - 1);
+        } else {
+            goto skip;
+        }
+        shader_file[off] = '\0'; /// pour que le chargement de shader precedent s'arrete
+        hash_add(hash_compute(nom), off + 1, map_shaders);
+    skip:
+        off+=read;
+    }
+    
+    fclose(fp);
+}
+
 void treatInput(struct remplissage_gui_bridge * gui_bridge)
 {
     /// L'utilisateur a demandé a changer de shape
@@ -339,7 +403,6 @@ void treatInput(struct remplissage_gui_bridge * gui_bridge)
             
             g_clips[g_cur_clip].shape.last_point = 0;
             
-
             _is_in_clip_mode = 0;
         }
     }
@@ -407,8 +470,7 @@ int main(int argc, char *argv[])
     struct device device;
 
     /* bridge between our logic and the GUI */
-    struct remplissage_gui_bridge
-    gui_bridge;
+    struct remplissage_gui_bridge gui_bridge;
 
     /* GLFW */
     glfwSetErrorCallback(error_callback);
@@ -444,7 +506,14 @@ int main(int argc, char *argv[])
 
     glfwSetWindowUserPointer(win, device.ctx);
 
-    initPolygon();
+    struct yt_hashmap map_shaders = {0};
+    charge_fichiers_shader("shaders/applat_texture.glsl", &map_shaders);
+    void *orig;
+    void *vert, *frag;
+    hash_get(hash_compute("origin"), &orig, &map_shaders);
+    hash_get(hash_compute("vertex_applat"), &vert, &map_shaders);
+    hash_get(hash_compute("fragment_applat"), &frag, &map_shaders);
+    initPolygon(orig + (intptr_t)vert, orig + (intptr_t)frag);
     generateTexture();
     loadTexture();
 
